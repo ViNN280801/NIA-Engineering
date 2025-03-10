@@ -1,0 +1,20 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="ScenarioWindowTitle">Scenarios</sys:String>
+    <sys:String x:Key="CurrentLabel">Current Value</sys:String>
+    <sys:String x:Key="TimeLabel">Spraying Time</sys:String>
+    <sys:String x:Key="ProgressLabel">Progress</sys:String>
+    <sys:String x:Key="CountdownModeLabel">Direct Time Count</sys:String>
+    <sys:String x:Key="CurrentUnitLabel">A</sys:String>
+    <sys:String x:Key="HoursLabel">hr</sys:String>
+    <sys:String x:Key="MinutesLabel">min</sys:String>
+    <sys:String x:Key="SecondsLabel">sec</sys:String>
+    <sys:String x:Key="StartButtonLabel">Start</sys:String>
+    <sys:String x:Key="StopButtonLabel">Stop</sys:String>
+    
+    <sys:String x:Key="CurrentTooltip">Range: ({0}; {1}]</sys:String>
+    <sys:String x:Key="HoursTooltip">Range: [{0}; {1}]</sys:String>
+    <sys:String x:Key="MinutesTooltip">Range: [{0}; {1}]</sys:String>
+    <sys:String x:Key="SecondsTooltip">Range: [{0}; {1}]</sys:String>
+</ResourceDictionary>

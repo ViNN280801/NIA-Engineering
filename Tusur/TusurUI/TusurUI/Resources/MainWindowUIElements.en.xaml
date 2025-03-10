@@ -1,0 +1,27 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="MainWindow_Title">Vaporizer Control</sys:String>
+    <sys:String x:Key="VaporizerTurnOn">On</sys:String>
+    <sys:String x:Key="VaporizerTurnOff">Off</sys:String>
+    <sys:String x:Key="SetSprayingScenarios">Set spraying scenarios</sys:String>
+    <sys:String x:Key="ShutterControl">Shutter control</sys:String>
+    <sys:String x:Key="LanguageComboBox_Russian">Russian</sys:String>
+    <sys:String x:Key="LanguageComboBox_English">English</sys:String>
+    <sys:String x:Key="SystemStateLabelLang">System State</sys:String>
+    <sys:String x:Key="SystemWorkingLabel">System is operational</sys:String>
+    <sys:String x:Key="SystemNotWorkingLabel">System is not operational</sys:String>
+    <sys:String x:Key="VaporizerParameters">Vaporizer parameters:</sys:String>
+    <sys:String x:Key="CurrentValueLabel">Current</sys:String>
+    <sys:String x:Key="VoltageValueLabel">Voltage</sys:String>
+    <sys:String x:Key="PowerSupplyComPortTooltip">Power Supply COM Port</sys:String>
+    <sys:String x:Key="ShutterComPortTooltip">Shutter COM Port</sys:String>
+    <sys:String x:Key="ScanComPortsButtonContent">Scan COM-ports</sys:String>
+    <sys:String x:Key="ScanComPortsTooltip">Start scanning COM ports. Fill in the corresponding drop-down lists for all COM ports found</sys:String>
+    <sys:String x:Key="VaporizerLabel">Vaporizer</sys:String>
+    <sys:String x:Key="OpenShutterButton">Open</sys:String>
+    <sys:String x:Key="CloseShutterButton">Close</sys:String>
+    <sys:String x:Key="StopStepMotorButton">Stop</sys:String>
+    <sys:String x:Key="CurrentMeasurementUnits">A</sys:String>
+    <sys:String x:Key="VoltageMeasurementUnits">V</sys:String>
+</ResourceDictionary>

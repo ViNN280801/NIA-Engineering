@@ -1,0 +1,116 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\Вкл.jpg" />
+    <None Remove="Images\Задать величину тока.jpg" />
+    <None Remove="Images\закр.jpg" />
+    <None Remove="Images\запуск.jpg" />
+    <None Remove="Images\заслонка закр фото.jpg" />
+    <None Remove="Images\заслонка закр фото.png" />
+    <None Remove="Images\заслонка откр.jpg" />
+    <None Remove="Images\заслонка откр.png" />
+    <None Remove="Images\индикатор вкл.jpg" />
+    <None Remove="Images\индикатор откл.jpg" />
+    <None Remove="Images\Откл.jpg" />
+    <None Remove="Images\откр.jpg" />
+    <None Remove="Images\Поле вывода фактического тока.jpg" />
+    <None Remove="Images\Поле для задания тока.jpg" />
+    <None Remove="Images\система не работает.jpg" />
+    <None Remove="Images\Состояние системы.jpg" />
+    <None Remove="Images\Ток испарителя.jpg" />
+    <None Remove="Images\Управление заслонкой.jpg" />
+    <None Remove="Images\Управление испарителем.jpg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Remove="Resources\ScenarioWindowUIElements.en.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\Вкл.jpg" />
+    <Resource Include="Images\Задать величину тока.jpg" />
+    <Resource Include="Images\закр.jpg" />
+    <Resource Include="Images\запуск.jpg" />
+    <Resource Include="Images\заслонка закр фото.png" />
+    <Resource Include="Images\заслонка откр.png" />
+    <Resource Include="Images\индикатор вкл.jpg" />
+    <Resource Include="Images\индикатор откл.jpg" />
+    <Resource Include="Images\Откл.jpg" />
+    <Resource Include="Images\откр.jpg" />
+    <Resource Include="Images\Поле вывода фактического тока.jpg" />
+    <Resource Include="Images\Поле для задания тока.jpg" />
+    <Resource Include="Images\система не работает.jpg" />
+    <Resource Include="Images\Состояние системы.jpg" />
+    <Resource Include="Images\Ток испарителя.jpg" />
+    <Resource Include="Images\Управление заслонкой.jpg" />
+    <Resource Include="Images\Управление испарителем.jpg" />
+    <Resource Include="Resources\ScenarioWindowUIElements.en.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Libs\PowerSupply.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Libs\StepMotor.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Libs\ThermoresistiveEvaporator.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Libs\TUSURCPPTestProjectv1.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Libs\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ErrorMessages.en.resx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ErrorMessages.ru.resx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Update="LogMessages\LogMessages.en.resx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Update="LogMessages\LogMessages.ru.resx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\LogMessages.en.resx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\LogMessages.ru.resx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Resources\MainWindowUIElements.en.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Page>
+    <Page Update="Resources\MainWindowUIElements.ru.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Page>
+    <Page Update="Resources\ScenarioWindowUIElements.ru.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Page>
+  </ItemGroup>
+
+</Project>

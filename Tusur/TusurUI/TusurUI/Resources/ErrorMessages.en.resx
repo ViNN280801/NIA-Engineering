@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AllFieldsZero" xml:space="preserve">
+    <value>It is not possible to apply a scenario with all zero fields.</value>
+  </data>
+  <data name="AllTimeFieldsZero" xml:space="preserve">
+    <value>It is not possible to apply a scenario with all zero time fields.</value>
+  </data>
+  <data name="CancellationTitle" xml:space="preserve">
+    <value>Stages Cancellation</value>
+  </data>
+  <data name="DirectCountdownStageCancelled" xml:space="preserve">
+    <value>Direct countdown stage was forcibly terminated.</value>
+  </data>
+  <data name="EmptyCOM" xml:space="preserve">
+    <value>COM-port is empty.</value>
+  </data>
+  <data name="EmptyTimeTextFields" xml:space="preserve">
+    <value>All time fields are empty. Enter at least one of them.</value>
+  </data>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="InternalError" xml:space="preserve">
+    <value>Internal Error: </value>
+  </data>
+  <data name="InvalidCurrentValue" xml:space="preserve">
+    <value>Current value cannot be {0}. Allowed values: ({1}; {2}]</value>
+  </data>
+  <data name="InvalidFields" xml:space="preserve">
+    <value>You have incorrectly filled in the following fields: {0}</value>
+  </data>
+  <data name="InvalidHoursValue" xml:space="preserve">
+    <value>Setting hours in the timer cannot be {0} h. Allowed values: [{1}; {2})</value>
+  </data>
+  <data name="InvalidMinutesValue" xml:space="preserve">
+    <value>Setting minutes in the timer cannot be {0} min. Allowed values: [{1}; {2})</value>
+  </data>
+  <data name="InvalidSecondsValue" xml:space="preserve">
+    <value>Setting seconds in the timer cannot be {0} sec. Allowed values: [{1}; {2})</value>
+  </data>
+  <data name="InvalidTimeTextField" xml:space="preserve">
+    <value>Enter the correct time value.</value>
+  </data>
+  <data name="MissingCurrent" xml:space="preserve">
+    <value>Current value</value>
+  </data>
+  <data name="MissingHours" xml:space="preserve">
+    <value>Hours</value>
+  </data>
+  <data name="MissingMinutes" xml:space="preserve">
+    <value>Minutes</value>
+  </data>
+  <data name="MissingSeconds" xml:space="preserve">
+    <value>Seconds</value>
+  </data>
+  <data name="PowerSupplyComPortError" xml:space="preserve">
+    <value>Select the COM port for the power supply first</value>
+  </data>
+  <data name="PowerSupplyConnectionWarning" xml:space="preserve">
+    <value>No connection with the power supply. Check the power supply and RS-432 cable connection.</value>
+  </data>
+  <data name="ProgressBarNotFound" xml:space="preserve">
+    <value>ProgressBar UI element with name '{0}' not found.</value>
+  </data>
+  <data name="StageCancelled" xml:space="preserve">
+    <value>Stage #{0} and the remaining ones were forcibly terminated.</value>
+  </data>
+  <data name="StageCancelledDirect" xml:space="preserve">
+    <value>Direct countdown stage was forcibly terminated.</value>
+  </data>
+  <data name="StageCancelledReverse" xml:space="preserve">
+    <value>Stage #{0} and the remaining ones were forcibly terminated.</value>
+  </data>
+  <data name="StageErrors" xml:space="preserve">
+    <value>Stage #{0}: {1}</value>
+  </data>
+  <data name="StageSuccessMessage" xml:space="preserve">
+    <value>Stage #{0} successfully completed</value>
+  </data>
+  <data name="StepMotorComPortError" xml:space="preserve">
+    <value>Select the COM port for the stepper motor first.</value>
+  </data>
+  <data name="SuccessTitle" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="SystemNotWorkingLabel" xml:space="preserve">
+    <value>System is not operational</value>
+  </data>
+  <data name="SystemWorkingLabel" xml:space="preserve">
+    <value>System is operational</value>
+  </data>
+  <data name="TextBoxNotFound" xml:space="preserve">
+    <value>TextBox UI element with name '{0}' not found.</value>
+  </data>
+  <data name="TimerError" xml:space="preserve">
+    <value>Stage {0}: {1}</value>
+  </data>
+  <data name="TimerErrorTitle" xml:space="preserve">
+    <value>Timer Error</value>
+  </data>
+  <data name="TotalTimeExceeded" xml:space="preserve">
+    <value>Total time cannot exceed 24 hours per stage.</value>
+  </data>
+  <data name="ValidationTitle" xml:space="preserve">
+    <value>Field Validation</value>
+  </data>
+  <data name="WarningTitle" xml:space="preserve">
+    <value>Warning</value>
+  </data>
+</root>

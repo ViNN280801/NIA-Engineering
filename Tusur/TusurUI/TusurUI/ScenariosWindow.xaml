@@ -1,0 +1,36 @@
+﻿<Window x:Class="TusurUI.ScenariosWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource ScenarioWindowTitle}" Height="300" Width="650"
+        ResizeMode="NoResize" Closed="Window_Closed">
+    <Grid x:Name="MainGrid">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,0,51">
+            <StackPanel Name="ScenarioStackPanel" Margin="10">
+                <!-- Labels Row -->
+                <StackPanel x:Name="ScenarioLabelsStackPanel" Orientation="Horizontal" Margin="5">
+                    <Label x:Name="CurrentValueLabel" Content="{DynamicResource CurrentLabel}" Width="90" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
+                    <Label x:Name="SprayingTimeLabel" Content="{DynamicResource TimeLabel}" Width="250" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
+                    <Label x:Name="ProgressLabel" Content="{DynamicResource ProgressLabel}" Width="90" HorizontalContentAlignment="Center"/>
+                    <CheckBox x:Name="CountdownModeCheckBox" Content="{DynamicResource CountdownModeLabel}" VerticalAlignment="Center" Checked="CountdownModeCheckBox_Checked" Unchecked="CountdownModeCheckBox_Unchecked"/>
+                </StackPanel>
+
+                <!-- Controls Row -->
+                <StackPanel x:Name="ScenarioControlsStackPanel" Orientation="Horizontal" Margin="5">
+                    <TextBox Name="CurrentTextBox" Width="66" PreviewTextInput="CurrentTextBox_PreviewTextInput" Style="{StaticResource ScenarioTextBoxStyle}" Height="25" LostFocus="CurrentTextBox_LostFocus" />
+                    <Label Content="{DynamicResource CurrentUnitLabel}" Margin="5" VerticalAlignment="Center"/>
+                    <TextBox Name="TimerHoursTextBox" Width="50" PreviewTextInput="TimerHoursTextBox_PreviewTextInput" Style="{StaticResource ScenarioTextBoxStyle}"  Height="25" LostFocus="TimerHoursTextBox_LostFocus" />
+                    <Label Content="{DynamicResource HoursLabel}" Margin="5" VerticalAlignment="Center"/>
+                    <TextBox Name="TimerMinutesTextBox" Width="50" PreviewTextInput="TimerMinutesTextBox_PreviewTextInput" Style="{StaticResource ScenarioTextBoxStyle}" Height="25" LostFocus="TimerMinutesTextBox_LostFocus" />
+                    <Label Content="{DynamicResource MinutesLabel}" Margin="5" VerticalAlignment="Center"/>
+                    <TextBox Name="TimerSecondsTextBox" Width="50" PreviewTextInput="TimerSecondsTextBox_PreviewTextInput" Style="{StaticResource ScenarioTextBoxStyle}" Height="25" LostFocus="TimerSecondsTextBox_LostFocus" />
+                    <Label Content="{DynamicResource SecondsLabel}" Margin="5" VerticalAlignment="Center"/>
+                    <ProgressBar Name="ProgressBar" Width="152" Height="20" Margin="5" VerticalAlignment="Center" Visibility="Visible"/>
+                    <Button x:Name="AddRowButton" Content="+" Width="25" Height="25" Background="Green" Click="AddRowButton_Click" Style="{StaticResource ScenarioAddRemoveButtonStyle}"/>
+                    <Button x:Name="RemoveRowButton" Content="-" Width="25" Height="25" Background="Red" Click="RemoveRowButton_Click" Style="{StaticResource ScenarioAddRemoveButtonStyle}" IsEnabled="False"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+        <Button x:Name="StartButton" Content="{DynamicResource StartButtonLabel}" Style="{StaticResource StartButton}" Margin="10,0,354,10" VerticalAlignment="Bottom" Click="StartButton_Click"/>
+        <Button x:Name="StopButton" Content="{DynamicResource StopButtonLabel}" Style="{StaticResource StopButton}" Margin="354,0,10,10" VerticalAlignment="Bottom" Click="StopButton_Click" IsEnabled="False"/>
+    </Grid>
+</Window>

@@ -1,0 +1,228 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AllFieldsZero" xml:space="preserve">
+    <value>Невозможно применить сценарий со всеми нулевыми полями.</value>
+  </data>
+  <data name="AllTimeFieldsZero" xml:space="preserve">
+    <value>Невозможно применить сценарий со всеми нулевыми полями времени.</value>
+  </data>
+  <data name="CancellationTitle" xml:space="preserve">
+    <value>Остановка выполнения</value>
+  </data>
+  <data name="DirectCountdownStageCancelled" xml:space="preserve">
+    <value>Стадия прямого отсчета была завершена принудительно.</value>
+  </data>
+  <data name="EmptyCOM" xml:space="preserve">
+    <value>COM-порт пуст.</value>
+  </data>
+  <data name="EmptyTimeTextFields" xml:space="preserve">
+    <value>Все поля времени пустые. Введите хотя бы одно из них.</value>
+  </data>
+  <data name="ErrorTitle" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="InternalError" xml:space="preserve">
+    <value>Внутренняя ошибка:</value>
+  </data>
+  <data name="InvalidCurrentValue" xml:space="preserve">
+    <value>Величина тока не может быть равной {0}. Допустимые значения: ({1}; {2}]</value>
+  </data>
+  <data name="InvalidFields" xml:space="preserve">
+    <value>Вы неверно заполнили следующие поля: {0}</value>
+  </data>
+  <data name="InvalidHoursValue" xml:space="preserve">
+    <value>Задание часов в таймере не может быть равным {0} ч. Допустимые значения: [{1}; {2})</value>
+  </data>
+  <data name="InvalidMinutesValue" xml:space="preserve">
+    <value>Задание минут в таймере не может быть равным {0} мин. Допустимые значения: [{1}; {2})</value>
+  </data>
+  <data name="InvalidSecondsValue" xml:space="preserve">
+    <value>Задание секунд в таймере не может быть равным {0} с. Допустимые значения: [{1}; {2})</value>
+  </data>
+  <data name="InvalidTimeTextField" xml:space="preserve">
+    <value>Введите корректное значение времени.</value>
+  </data>
+  <data name="MissingCurrent" xml:space="preserve">
+    <value>Величина тока</value>
+  </data>
+  <data name="MissingHours" xml:space="preserve">
+    <value>Часы</value>
+  </data>
+  <data name="MissingMinutes" xml:space="preserve">
+    <value>Минуты</value>
+  </data>
+  <data name="MissingSeconds" xml:space="preserve">
+    <value>Секунды</value>
+  </data>
+  <data name="PowerSupplyComPortError" xml:space="preserve">
+    <value>Сначала выберите COM-порт для блока питания.</value>
+  </data>
+  <data name="PowerSupplyConnectionWarning" xml:space="preserve">
+    <value>Отсутствует связь с блоком питания. Проверьте питание на БП и подключение кабеля RS-432.</value>
+  </data>
+  <data name="ProgressBarNotFound" xml:space="preserve">
+    <value>Элемент пользовательского интерфейса  ProgressBar с именем '{0}' не найден.</value>
+  </data>
+  <data name="StageCancelled" xml:space="preserve">
+    <value>Стадия №{0} и оставшиеся были завершены принудительно.</value>
+  </data>
+  <data name="StageCancelledDirect" xml:space="preserve">
+    <value>Стадия прямого отсчета была завершена принудительно.</value>
+  </data>
+  <data name="StageCancelledReverse" xml:space="preserve">
+    <value>Стадия №{0} и оставшиеся были завершены принудительно.</value>
+  </data>
+  <data name="StageErrors" xml:space="preserve">
+    <value>Стадия №{0}: {1}</value>
+  </data>
+  <data name="StageSuccessMessage" xml:space="preserve">
+    <value>Стадия №{0} успешно завершена</value>
+  </data>
+  <data name="StepMotorComPortError" xml:space="preserve">
+    <value>Сначала выберите COM-порт для шагового двигателя.</value>
+  </data>
+  <data name="SuccessTitle" xml:space="preserve">
+    <value>Успех</value>
+  </data>
+  <data name="SystemNotWorkingLabel" xml:space="preserve">
+    <value>Система не работает</value>
+  </data>
+  <data name="SystemWorkingLabel" xml:space="preserve">
+    <value>Система работает</value>
+  </data>
+  <data name="TextBoxNotFound" xml:space="preserve">
+    <value>Элемент пользовательского интерфейса TextBox с именем '{0}' не найден.</value>
+  </data>
+  <data name="TimerError" xml:space="preserve">
+    <value>Стадия {0}: {1}</value>
+  </data>
+  <data name="TimerErrorTitle" xml:space="preserve">
+    <value>Ошибка таймера</value>
+  </data>
+  <data name="TotalTimeExceeded" xml:space="preserve">
+    <value>Общее время не может превышать 24 часа на одну стадию.</value>
+  </data>
+  <data name="ValidationTitle" xml:space="preserve">
+    <value>Проверка полей</value>
+  </data>
+  <data name="WarningTitle" xml:space="preserve">
+    <value>Предупреждение</value>
+  </data>
+</root>

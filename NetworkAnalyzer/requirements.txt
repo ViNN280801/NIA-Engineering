@@ -1,0 +1,9 @@
+psutil
+pandas
+matplotlib
+numpy
+schedule
+speedtest-cli
+pyinstaller
+PyQt5
+nlohmann-json

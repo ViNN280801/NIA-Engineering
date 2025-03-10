@@ -1,0 +1,41 @@
+# Python cache
+__pycache__
+
+# Virtual environment
+venv
+
+# PyInstaller
+dist
+*.spec
+
+# PyTest
+.pytest_cache
+
+# Any build files
+build
+out
+Release
+Debug
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.ico
+
+# VsCode files
+.vscode
+
+# Visual Studio files
+.vs
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vcxproj.user.props
+
+# Git folder
+.git

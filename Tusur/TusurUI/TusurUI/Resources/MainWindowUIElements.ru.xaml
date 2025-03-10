@@ -1,0 +1,27 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="MainWindow_Title">Управление Испарителем</sys:String>
+    <sys:String x:Key="VaporizerTurnOn">Вкл</sys:String>
+    <sys:String x:Key="VaporizerTurnOff">Откл</sys:String>
+    <sys:String x:Key="SetSprayingScenarios">Задание параметров напыления</sys:String>
+    <sys:String x:Key="ShutterControl">Управление затворкой</sys:String>
+    <sys:String x:Key="LanguageComboBox_Russian">Русский</sys:String>
+    <sys:String x:Key="LanguageComboBox_English">Английский</sys:String>
+    <sys:String x:Key="SystemStateLabelLang">Состояние системы:</sys:String>
+    <sys:String x:Key="SystemWorkingLabel">Система работает</sys:String>
+    <sys:String x:Key="SystemNotWorkingLabel">Система не работает</sys:String>
+    <sys:String x:Key="VaporizerParameters">Параметры испарителя:</sys:String>
+    <sys:String x:Key="CurrentValueLabel">Сила тока</sys:String>
+    <sys:String x:Key="VoltageValueLabel">Напряжение</sys:String>
+    <sys:String x:Key="PowerSupplyComPortTooltip">COM-порт для управления источником питания</sys:String>
+    <sys:String x:Key="ShutterComPortTooltip">COM-порт для управления затвором</sys:String>
+    <sys:String x:Key="ScanComPortsButtonContent">Сканировать COM-порты</sys:String>
+    <sys:String x:Key="ScanComPortsTooltip">Запуск сканирования COM-портов. Все найденные COM-порты заполнят соответсвующие выпадающие списки</sys:String>
+    <sys:String x:Key="VaporizerLabel">Испаритель</sys:String>
+    <sys:String x:Key="OpenShutterButton">Откр</sys:String>
+    <sys:String x:Key="CloseShutterButton">Закр</sys:String>
+    <sys:String x:Key="StopStepMotorButton">Стоп</sys:String>
+    <sys:String x:Key="CurrentMeasurementUnits">А</sys:String>
+    <sys:String x:Key="VoltageMeasurementUnits">В</sys:String>
+</ResourceDictionary>
