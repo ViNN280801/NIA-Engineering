@@ -46,9 +46,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.close_shortcut_q.setKey(QKeySequence("Ctrl+Q"))
         self.close_shortcut_q.activated.connect(self._confirm_close)
 
-        # if len(self.available_ports) < 2:
-        #     self._log_message("Not enough serial ports available. UI is disabled.")
-        #     self._disable_ui()
+        if len(self.available_ports) < 2:
+            self._log_message("Not enough serial ports available. UI is disabled.")
+            self._disable_ui()
 
         self._load_config_data()
 
@@ -166,22 +166,22 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message(f"Relay device connected on port {relay_port}.")
 
         # 2. Connect to the Gas Flow Regulator
-        # gfr_port = self.combo_port_2.currentText()
-        # gfr_err = self.gfr_controller.TurnOn(
-        #     "/dev/ttyUSB0",
-        #     baudrate=self.gfr_config_dict.get("baudrate", GFR_DEFAULT_BAUDRATE),
-        #     slave_id=self.gfr_config_dict.get("slave_id", GFR_DEFAULT_SLAVE_ID),
-        #     timeout=self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT),
-        # )
-        # if gfr_err != self.gfr_controller.GFR_OK:
-        #     self._gfr_show_error_msg()
-        #     self.toggle_gfr_button.setChecked(False)
-        #     self.toggle_gfr_button.setText("Turn GFR ON")
-        # else:
-        #     self._log_message(
-        #         f"Gas Flow Regulator device connected on port {gfr_port}."
-        #     )
-        #     self.toggle_gfr_button.setText("Turn GFR OFF")
+        gfr_port = self.combo_port_2.currentText()
+        gfr_err = self.gfr_controller.TurnOn(
+            "/dev/ttyUSB0",
+            baudrate=self.gfr_config_dict.get("baudrate", GFR_DEFAULT_BAUDRATE),
+            slave_id=self.gfr_config_dict.get("slave_id", GFR_DEFAULT_SLAVE_ID),
+            timeout=self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT),
+        )
+        if gfr_err != self.gfr_controller.GFR_OK:
+            self._gfr_show_error_msg()
+            self.toggle_gfr_button.setChecked(False)
+            self.toggle_gfr_button.setText("Turn GFR ON")
+        else:
+            self._log_message(
+                f"Gas Flow Regulator device connected on port {gfr_port}."
+            )
+            self.toggle_gfr_button.setText("Turn GFR OFF")
 
     def _close_connections(self):
         """
