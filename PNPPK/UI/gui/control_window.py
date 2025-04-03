@@ -10,11 +10,11 @@ from core.gas_flow_regulator import GFRController
 from core.relay import RelayController
 from core.config import ConfigLoader
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
-RELAY_DEFAULT_BAUDRATE = 115200
+RELAY_DEFAULT_BAUDRATE = 9600
 RELAY_DEFAULT_TIMEOUT = 10
-RELAY_DEFAULT_SLAVE_ID = 6
+RELAY_DEFAULT_SLAVE_ID = 16
 
 GFR_DEFAULT_BAUDRATE = 38400
 GFR_DEFAULT_TIMEOUT = 50
@@ -38,12 +38,17 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self._create_toolbar()
         self._create_central_widget()
 
-        QShortcut(QKeySequence("Ctrl+W"), self, activated=self._confirm_close)
-        QShortcut(QKeySequence("Ctrl+Q"), self, activated=self._confirm_close)
+        self.close_shortcut_w = QShortcut(self)
+        self.close_shortcut_w.setKey(QKeySequence("Ctrl+W"))
+        self.close_shortcut_w.activated.connect(self._confirm_close)
 
-        if len(self.available_ports) < 2:
-            self._log_message("Not enough serial ports available. UI is disabled.")
-            self._disable_ui()
+        self.close_shortcut_q = QShortcut(self)
+        self.close_shortcut_q.setKey(QKeySequence("Ctrl+Q"))
+        self.close_shortcut_q.activated.connect(self._confirm_close)
+
+        # if len(self.available_ports) < 2:
+        #     self._log_message("Not enough serial ports available. UI is disabled.")
+        #     self._disable_ui()
 
         self._load_config_data()
 
@@ -79,8 +84,15 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.flow_data = []  # Stores (time in minutes, flow)
         self.start_time = datetime.datetime.now()  # Set start time for reference
 
-        # Add the canvas below UI elements
-        self.centralWidget().layout().addWidget(self.canvas)
+        central_widget = self.centralWidget()
+        if central_widget is not None:
+            layout = central_widget.layout()
+            if layout is not None:
+                layout.addWidget(self.canvas)
+            else:
+                self._log_message("Warning: Layout is None, cannot add graph")
+        else:
+            self._log_message("Warning: Central widget is None, cannot add graph")
 
     def _update_graph(self):
         """
@@ -114,7 +126,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.ax.grid(True, which="major", linestyle="-", linewidth=0.8)
             self.ax.grid(True, which="minor", linestyle="--", linewidth=0.5, alpha=0.5)
 
-            self.canvas.draw()
+            if hasattr(self, "canvas"):
+                self.canvas.draw()
+
             self._log_message(
                 f"Current flow is {flow} [cm3/min] at time moment {elapsed_minutes:.2f} [min]"
             )
@@ -152,22 +166,22 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message(f"Relay device connected on port {relay_port}.")
 
         # 2. Connect to the Gas Flow Regulator
-        gfr_port = self.combo_port_2.currentText()
-        gfr_err = self.gfr_controller.TurnOn(
-            "/dev/ttyUSB0",
-            baudrate=self.gfr_config_dict.get("baudrate", GFR_DEFAULT_BAUDRATE),
-            slave_id=self.gfr_config_dict.get("slave_id", GFR_DEFAULT_SLAVE_ID),
-            timeout=self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT),
-        )
-        if gfr_err != self.gfr_controller.GFR_OK:
-            self._gfr_show_error_msg()
-            self.toggle_gfr_button.setChecked(False)
-            self.toggle_gfr_button.setText("Turn GFR ON")
-        else:
-            self._log_message(
-                f"Gas Flow Regulator device connected on port {gfr_port}."
-            )
-            self.toggle_gfr_button.setText("Turn GFR OFF")
+        # gfr_port = self.combo_port_2.currentText()
+        # gfr_err = self.gfr_controller.TurnOn(
+        #     "/dev/ttyUSB0",
+        #     baudrate=self.gfr_config_dict.get("baudrate", GFR_DEFAULT_BAUDRATE),
+        #     slave_id=self.gfr_config_dict.get("slave_id", GFR_DEFAULT_SLAVE_ID),
+        #     timeout=self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT),
+        # )
+        # if gfr_err != self.gfr_controller.GFR_OK:
+        #     self._gfr_show_error_msg()
+        #     self.toggle_gfr_button.setChecked(False)
+        #     self.toggle_gfr_button.setText("Turn GFR ON")
+        # else:
+        #     self._log_message(
+        #         f"Gas Flow Regulator device connected on port {gfr_port}."
+        #     )
+        #     self.toggle_gfr_button.setText("Turn GFR OFF")
 
     def _close_connections(self):
         """

@@ -45,7 +45,7 @@ def get_active_serial_port():
     @details
     This function uses glob to list files matching '/dev/ttyUSB*', which is typical for Linux USB serial devices.
     """
-    ports = glob.glob('/dev/ttyUSB*')
+    ports = glob.glob("/dev/ttyUSB*")
     if ports:
         return ports[0]
     return None
@@ -78,7 +78,11 @@ def main():
         )
 
         if not gfr_instance.connect():
-            print("Failed to initialize connection: {}".format(gfr_instance.get_last_error()))
+            print(
+                "Failed to initialize connection: {}".format(
+                    gfr_instance.get_last_error()
+                )
+            )
             time.sleep(2)
             continue
 

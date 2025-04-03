@@ -19,8 +19,9 @@ from ctypes import CDLL, POINTER, c_char_p, c_int, c_void_p
 
 
 # Configure logging.
-logging.basicConfig(level=logging.DEBUG,
-                    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Determine the Relay library filename based on the platform.
@@ -50,11 +51,15 @@ class RelayConfig(ctypes.Structure):
     @brief Represents the configuration parameters for establishing a Relay connection.
     Maps to the C structure `Relay_Config` defined in the header.
     """
+
     _fields_ = [
-        ("port", c_char_p),    # Serial port (e.g., "COM3" or "/dev/ttyUSB0")
-        ("baudrate", c_int),    # Baud rate for serial communication (e.g., 9600, 19200, 38400)
-        ("slave_id", c_int),    # MODBUS slave ID of the relay
-        ("timeout", c_int),     # Timeout for response in milliseconds
+        ("port", c_char_p),  # Serial port (e.g., "COM3" or "/dev/ttyUSB0")
+        (
+            "baudrate",
+            c_int,
+        ),  # Baud rate for serial communication (e.g., 9600, 19200, 38400)
+        ("slave_id", c_int),  # MODBUS slave ID of the relay
+        ("timeout", c_int),  # Timeout for response in milliseconds
     ]
 
 
@@ -63,15 +68,15 @@ class RelayHandle(ctypes.Structure):
     @brief Represents the internal handle used for communication with the Relay device.
     Maps to the C structure `Relay_Handle` defined in the header.
     """
-    _fields_ = [
-        ("modbus_ctx", c_void_p)  # Pointer to the libmodbus context.
-    ]
+
+    _fields_ = [("modbus_ctx", c_void_p)]  # Pointer to the libmodbus context.
 
 
 class IRelay:
     """
     @brief Interface defining methods for interacting with the Relay device.
     """
+
     def connect(self) -> bool:
         """
         @brief Establishes a connection to the Relay device.
@@ -112,6 +117,7 @@ class Relay(IRelay):
     @brief Python wrapper for the Relay C API.
     Provides a high-level interface to communicate with the relay device.
     """
+
     def __init__(self, port: str, baudrate: int, slave_id: int, timeout: int) -> None:
         """
         @brief Initializes a Relay instance with the given connection parameters.
@@ -120,8 +126,13 @@ class Relay(IRelay):
         @param slave_id MODBUS slave ID.
         @param timeout Response timeout in milliseconds.
         """
-        logger.debug("Initializing Relay with port=%s, baudrate=%d, slave_id=%d, timeout=%d",
-                     port, baudrate, slave_id, timeout)
+        logger.debug(
+            "Initializing Relay with port=%s, baudrate=%d, slave_id=%d, timeout=%d",
+            port,
+            baudrate,
+            slave_id,
+            timeout,
+        )
         self._config = RelayConfig(port.encode("utf-8"), baudrate, slave_id, timeout)
         self._handle = RelayHandle()
         self._setup_functions()
@@ -150,10 +161,16 @@ class Relay(IRelay):
         @brief Establishes a connection with the Relay device.
         @return True if the connection is successfully established, False otherwise.
         """
-        logger.info("Attempting to initialize Relay device with config: port=%s, baudrate=%d, slave_id=%d, timeout=%d",
-                    self._config.port.decode('utf-8') if self._config.port else "None",
-                    self._config.baudrate, self._config.slave_id, self._config.timeout)
-        result = relay_lib.RELAY_Init(ctypes.byref(self._config), ctypes.byref(self._handle))
+        logger.info(
+            "Attempting to initialize Relay device with config: port=%s, baudrate=%d, slave_id=%d, timeout=%d",
+            self._config.port.decode("utf-8") if self._config.port else "None",
+            self._config.baudrate,
+            self._config.slave_id,
+            self._config.timeout,
+        )
+        result = relay_lib.RELAY_Init(
+            ctypes.byref(self._config), ctypes.byref(self._handle)
+        )
         error_message = self.get_last_error()
         if error_message and error_message != "No error.":
             logger.warning("RELAY_GetLastError returned: %s", error_message)
@@ -196,7 +213,9 @@ class Relay(IRelay):
             self._handle.modbus_ctx = None
             logger.info("Connection closed successfully.")
         else:
-            logger.warning("Attempted to close Relay device, but handle is invalid or already closed.")
+            logger.warning(
+                "Attempted to close Relay device, but handle is invalid or already closed."
+            )
 
     def get_last_error(self) -> str:
         """
