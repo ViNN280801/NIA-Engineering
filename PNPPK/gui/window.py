@@ -7,7 +7,7 @@ from core.yaml_config_loader import YAMLConfigLoader
 from PyQt5.QtGui import QKeySequence
 from core.gas_flow_regulator.controller import GFRController
 from core.relay.controller import RelayController
-from core.utils import MODBUS_OK
+from core.utils import MODBUS_OK, MODBUS_ERROR
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QMessageBox, QShortcut
 
@@ -235,7 +235,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
     def _disable_ui(self):
         if len(self.available_ports) < 2:
-            self._log_message("Недостаточно доступных портов. UI (графический интерфейс) отключено.")
+            self._log_message("Недостаточно доступных портов. Графический интерфейс отключен.")
 
             self.combo_port_1.setEnabled(False)
             self.combo_port_2.setEnabled(False)
@@ -351,7 +351,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         form_layout = QtWidgets.QHBoxLayout()
 
         self.setpoint_line_edit = QtWidgets.QLineEdit(self)
-        self.setpoint_line_edit.setPlaceholderText("Введите заданный расход (float)")
+        self.setpoint_line_edit.setPlaceholderText("Введите заданный расход в дробной форме (например: 50.5)")
         double_validator = QtGui.QDoubleValidator(self)
         self.setpoint_line_edit.setValidator(double_validator)
         form_layout.addWidget(self.setpoint_line_edit)
@@ -370,12 +370,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.graph_timer.timeout.connect(self._update_graph)
         self.graph_timer.start(PLOT_UPDATE_TIME_TICK_MS)
 
-        self.flow_display = QtWidgets.QTextEdit(self)
-        self.flow_display.setReadOnly(True)
-        self.flow_display.setPlaceholderText(
+        self.log_console = QtWidgets.QTextEdit(self)
+        self.log_console.setReadOnly(True)
+        self.log_console.setPlaceholderText(
             "Текущий расход будет отображаться здесь..."
         )
-        layout.addWidget(self.flow_display)
+        layout.addWidget(self.log_console)
 
     @QtCore.pyqtSlot()
     def _toggle_gfr(self):
@@ -408,7 +408,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message(f"Заданный расход {setpoint} отправлен успешно.")
 
     def _log_message(self, message: str):
-        self.flow_display.append(message)
+        self.log_console.append(message)
 
     def _gfr_show_error_msg(self):
         gfr_error = self.gfr_controller.GetLastError()
@@ -422,7 +422,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 "Ошибка РРГ",
                 f"{self.gfr_controller.GetLastError()}",
             )
-        elif isinstance(gfr_error, int) and gfr_error == -1:
+        elif isinstance(gfr_error, int) and gfr_error == MODBUS_ERROR:
             QMessageBox.critical(
                 self,
                 "Ошибка РРГ",
@@ -443,7 +443,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 "Ошибка РРГ",
                 f"{self.relay_controller.GetLastError()}",
             )
-        elif isinstance(relay_error, int) and relay_error == -1:
+        elif isinstance(relay_error, int) and relay_error == MODBUS_ERROR:
             QMessageBox.critical(self, "Ошибка РРГ", "Реле не подключено")
         else:
             QMessageBox.critical(self, "Ошибка РРГ", "Неизвестная ошибка")
