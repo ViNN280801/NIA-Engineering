@@ -235,7 +235,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
     def _disable_ui(self):
         if len(self.available_ports) < 2:
-            self._log_message("Недостаточно доступных портов. Графический интерфейс отключен.")
+            self._log_message(
+                "Недостаточно доступных портов. Графический интерфейс отключен."
+            )
 
             self.combo_port_1.setEnabled(False)
             self.combo_port_2.setEnabled(False)
@@ -351,7 +353,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         form_layout = QtWidgets.QHBoxLayout()
 
         self.setpoint_line_edit = QtWidgets.QLineEdit(self)
-        self.setpoint_line_edit.setPlaceholderText("Введите заданный расход в дробной форме (например: 50.5)")
+        self.setpoint_line_edit.setPlaceholderText(
+            "Введите заданный расход в дробной форме (например: 50.5)"
+        )
         double_validator = QtGui.QDoubleValidator(self)
         self.setpoint_line_edit.setValidator(double_validator)
         form_layout.addWidget(self.setpoint_line_edit)
