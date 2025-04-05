@@ -30,7 +30,7 @@ if (Test-Path $BUILD_DIR) { Remove-Item -Recurse -Force $BUILD_DIR }
 # 5. Run script: .\create_executable.ps1
 Write-Host "Building executable..."
 python -m PyInstaller --noconfirm `
-					  --onefile `
+					  --onedir `
 					  --windowed `
 					  --clean `
 				      --log-level "INFO" `
