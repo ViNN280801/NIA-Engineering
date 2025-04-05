@@ -55,7 +55,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.close_shortcut_q.setKey(QKeySequence("Ctrl+Q"))
         self.close_shortcut_q.activated.connect(self._confirm_close)
 
-        # self._disable_ui()
+        self._disable_ui()
         self._load_config_data()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
