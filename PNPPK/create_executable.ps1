@@ -9,6 +9,9 @@ $MAIN_SCRIPT = ".\main.py"
 $DIST_DIR = ".\dist"
 $BUILD_DIR = ".\build"
 
+# Correct path based on your Anaconda installation
+$CONDA_DLL_PATH = "C:\Users\vladislavsemykin\anaconda3\Library\bin"
+
 # Set QT_PLUGIN_PATH environment variable (if you need to correctly do it, change the path with yours)
 $env:QT_PLUGIN_PATH = ".\venv\Lib\site-packages\PyQt5\Qt5\plugins"
 
@@ -34,6 +37,9 @@ python -m PyInstaller --noconfirm `
 					  --name $APP_NAME `
 					  --add-data ".;.\" `
 					  --add-data "config;config\" `
+					  --add-binary "$CONDA_DLL_PATH\libexpat.dll;." `
+                      --add-binary "$CONDA_DLL_PATH\LIBBZ2.dll;." `
+                      --add-binary "$CONDA_DLL_PATH\ffi.dll;." `
 					  --paths "." `
 					  $MAIN_SCRIPT
 
