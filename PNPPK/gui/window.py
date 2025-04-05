@@ -55,7 +55,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.close_shortcut_q.setKey(QKeySequence("Ctrl+Q"))
         self.close_shortcut_q.activated.connect(self._confirm_close)
 
-        self._disable_ui()
+        # self._disable_ui()
         self._load_config_data()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
@@ -161,12 +161,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         relay_port = self.combo_port_1.currentText()
         relay_err = self.relay_controller.TurnOn(
             relay_port,
-            baudrate=self.relay_config_dict.get("baudrate", RELAY_DEFAULT_BAUDRATE),
-            parity=self.relay_config_dict.get("parity", RELAY_DEFAULT_PARITY),
-            data_bit=self.relay_config_dict.get("data_bit", RELAY_DEFAULT_DATA_BIT),
-            stop_bit=self.relay_config_dict.get("stop_bit", RELAY_DEFAULT_STOP_BIT),
-            slave_id=self.relay_config_dict.get("slave_id", RELAY_DEFAULT_SLAVE_ID),
-            timeout=self.relay_config_dict.get("timeout", RELAY_DEFAULT_TIMEOUT),
+            baudrate=self.relay_baudrate,
+            parity=self.relay_parity,
+            data_bit=self.relay_data_bit,
+            stop_bit=self.relay_stop_bit,
+            slave_id=self.relay_slave_id,
+            timeout=self.relay_timeout,
         )
         if relay_err != MODBUS_OK:
             self._relay_show_error_msg()
@@ -178,12 +178,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         gfr_port = self.combo_port_2.currentText()
         gfr_err = self.gfr_controller.TurnOn(
             gfr_port,
-            baudrate=self.gfr_config_dict.get("baudrate", GFR_DEFAULT_BAUDRATE),
-            parity=self.gfr_config_dict.get("parity", GFR_DEFAULT_PARITY),
-            data_bit=self.gfr_config_dict.get("data_bit", GFR_DEFAULT_DATA_BIT),
-            stop_bit=self.gfr_config_dict.get("stop_bit", GFR_DEFAULT_STOP_BIT),
-            slave_id=self.gfr_config_dict.get("slave_id", GFR_DEFAULT_SLAVE_ID),
-            timeout=self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT),
+            baudrate=self.gfr_baudrate,
+            parity=self.gfr_parity,
+            data_bit=self.gfr_data_bit,
+            stop_bit=self.gfr_stop_bit,
+            slave_id=self.gfr_slave_id,
+            timeout=self.gfr_timeout,
         )
         if gfr_err != MODBUS_OK:
             self._gfr_show_error_msg()
@@ -225,6 +225,60 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         try:
             self.gfr_config_dict = self.config_loader.load_config(gfr_config_path)
             self.relay_config_dict = self.config_loader.load_config(relay_config_path)
+
+            self.relay_baudrate = self.relay_config_dict.get(
+                "baudrate", RELAY_DEFAULT_BAUDRATE
+            )
+            self.relay_parity = self.relay_config_dict.get(
+                "parity", RELAY_DEFAULT_PARITY
+            )
+            self.relay_data_bit = self.relay_config_dict.get(
+                "data_bit", RELAY_DEFAULT_DATA_BIT
+            )
+            self.relay_stop_bit = self.relay_config_dict.get(
+                "stop_bit", RELAY_DEFAULT_STOP_BIT
+            )
+            self.relay_slave_id = self.relay_config_dict.get(
+                "slave_id", RELAY_DEFAULT_SLAVE_ID
+            )
+            self.relay_timeout = self.relay_config_dict.get(
+                "timeout", RELAY_DEFAULT_TIMEOUT
+            )
+
+            self.gfr_baudrate = self.gfr_config_dict.get(
+                "baudrate", GFR_DEFAULT_BAUDRATE
+            )
+            self.gfr_parity = self.gfr_config_dict.get("parity", GFR_DEFAULT_PARITY)
+            self.gfr_data_bit = self.gfr_config_dict.get(
+                "data_bit", GFR_DEFAULT_DATA_BIT
+            )
+            self.gfr_stop_bit = self.gfr_config_dict.get(
+                "stop_bit", GFR_DEFAULT_STOP_BIT
+            )
+            self.gfr_slave_id = self.gfr_config_dict.get(
+                "slave_id", GFR_DEFAULT_SLAVE_ID
+            )
+            self.gfr_timeout = self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT)
+
+            self._log_message(
+                f"Конфигурация загружена успешно из файлов: [{gfr_config_path}; {relay_config_path}]. Параметры конфигурации:"
+            )
+            self._log_message(
+                f"РРГ:\nBaudrate: {self.gfr_baudrate}\n"
+                f"Parity: {self.gfr_parity}\n"
+                f"Data bit: {self.gfr_data_bit}\n"
+                f"Stop bit: {self.gfr_stop_bit}\n"
+                f"Slave ID: {self.gfr_slave_id}\n"
+                f"Timeout: {self.gfr_timeout}"
+            )
+            self._log_message(
+                f"\nРеле:\nBaudrate: {self.relay_baudrate}\n"
+                f"Parity: {self.relay_parity}\n"
+                f"Data bit: {self.relay_data_bit}\n"
+                f"Stop bit: {self.relay_stop_bit}\n"
+                f"Slave ID: {self.relay_slave_id}\n"
+                f"Timeout: {self.relay_timeout}"
+            )
         except Exception as e:
             self._log_message(f"Не удалось загрузить конфигурацию: {e}")
 

@@ -1,10 +1,8 @@
-# ui/config/rrg_config.yaml
-# Configuration for the RRG (Gas Flow Regulator)
-RRG:
-  baudrate: 38400 # Baud rate for communication
-  slave_id: 1 # MODBUS slave ID for the RRG
-  timeout: 50 # Response timeout in milliseconds
-  data_bits: 8 # Count of data bits
-  stop_bits: 1 # Count of stop bits
-
-# Note: Data bits (8) and stop bits (1) are fixed by the API defaults.
+# /config/gfr.yaml
+# Configuration for the Gas Flow Regulator
+baudrate: 38400 # Baud rate for communication
+slave_id: 1     # MODBUS slave ID for the RRG
+timeout: 50     # Response timeout in milliseconds
+data_bits: 8    # Count of data bits
+stop_bits: 1    # Count of stop bits
+parity: "N"     # Parity for communication
