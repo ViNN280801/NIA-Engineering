@@ -35,7 +35,7 @@ PLOT_UPDATE_TIME_TICK_MS = 50
 class GFRControlWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Gas Flow Regulator Control Panel")
+        self.setWindowTitle("Панель управления РРГ")
         self.resize(1200, 700)
 
         self.gfr_controller = GFRController()
@@ -65,8 +65,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         """
         reply = QMessageBox.question(
             self,
-            "Confirm Exit",
-            "Are you sure you want to exit?",
+            "Подтвердить выход",
+            "Вы уверены, что хотите выйти?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -83,9 +83,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.canvas.setMinimumHeight(500)
         self.ax = self.figure.add_subplot(111)
 
-        self.ax.set_xlabel("Time (minutes)")
-        self.ax.set_ylabel("Flow (SCCM)")
-        self.ax.set_title("Gas Flow over Time")
+        self.ax.set_xlabel("Время [мин]")
+        self.ax.set_ylabel("Расход [см3/мин]")
+        self.ax.set_title("Расход газа по времени Qm(t)")
 
         self.flow_data = []  # Stores (time in minutes, flow)
         self.start_time = datetime.datetime.now()  # Set start time for reference
@@ -96,9 +96,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             if layout is not None:
                 layout.addWidget(self.canvas)
             else:
-                self._log_message("Warning: Layout is None, cannot add graph")
+                raise ValueError("DEBUG: Layout is None, cannot add graph")
         else:
-            self._log_message("Warning: Central widget is None, cannot add graph")
+            raise ValueError("DEBUG: Central widget is None, cannot add graph")
 
     def _update_graph(self):
         """
@@ -124,9 +124,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.ax.clear()
             self.ax.plot(times, flows, marker="o", linestyle="-")
 
-            self.ax.set_xlabel("Time (minutes)")
-            self.ax.set_ylabel("Flow (SCCM)")
-            self.ax.set_title("Gas Flow over Time")
+            self.ax.set_xlabel("Время [мин]")
+            self.ax.set_ylabel("Расход [см3/мин]")
+            self.ax.set_title("Расход газа по времени Qm(t)")
 
             self.ax.minorticks_on()
             self.ax.grid(True, which="major", linestyle="-", linewidth=0.8)
@@ -136,7 +136,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 self.canvas.draw()
 
             self._log_message(
-                f"Current flow is {flow} [cm3/min] at time moment {elapsed_minutes:.2f} [min]"
+                f"Текущий расход: {flow} [см3/мин] в момент времени {elapsed_minutes:.2f} [мин]"
             )
         else:
             self._gfr_show_error_msg()
@@ -147,8 +147,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         """
         reply = QMessageBox.question(
             self,
-            "Confirm Exit",
-            "Are you sure you want to exit?",
+            "Подтвердить выход",
+            "Вы уверены, что хотите выйти?",
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -172,7 +172,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._relay_show_error_msg()
             return
         else:
-            self._log_message(f"Relay device connected on port {relay_port}.")
+            self._log_message(f"Реле подключено к порту {relay_port}.")
 
         # 2. Connect to the Gas Flow Regulator
         gfr_port = self.combo_port_2.currentText()
@@ -188,12 +188,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if gfr_err != MODBUS_OK:
             self._gfr_show_error_msg()
             self.toggle_gfr_button.setChecked(False)
-            self.toggle_gfr_button.setText("Turn GFR ON")
+            self.toggle_gfr_button.setText("Включить РРГ")
         else:
-            self._log_message(
-                f"Gas Flow Regulator device connected on port {gfr_port}."
-            )
-            self.toggle_gfr_button.setText("Turn GFR OFF")
+            self._log_message(f"РРГ подключено к порту {gfr_port}.")
+            self.toggle_gfr_button.setText("Выключить РРГ")
 
     def _close_connections(self):
         """
@@ -206,8 +204,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             if gfr_err != MODBUS_OK:
                 self._gfr_show_error_msg()
             else:
-                self._log_message("Gas Flow Regulator device disconnected.")
-            self.toggle_gfr_button.setText("Turn GFR ON")
+                self._log_message("РРГ отключено.")
+            self.toggle_gfr_button.setText("Включить РРГ")
 
         # 2. Turn off the Relay
         if self.relay_controller.IsConnected():
@@ -215,7 +213,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             if relay_err != MODBUS_OK:
                 self._relay_show_error_msg()
             else:
-                self._log_message("Relay device disconnected.")
+                self._log_message("Реле отключено.")
 
     def _load_config_data(self):
         gfr_config_path = os.path.join(
@@ -228,7 +226,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.gfr_config_dict = self.config_loader.load_config(gfr_config_path)
             self.relay_config_dict = self.config_loader.load_config(relay_config_path)
         except Exception as e:
-            self._log_message(f"Failed to load config: {e}")
+            self._log_message(f"Не удалось загрузить конфигурацию: {e}")
 
     def _get_available_ports(self):
         ports = serial.tools.list_ports.comports()
@@ -237,7 +235,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
     def _disable_ui(self):
         if len(self.available_ports) < 2:
-            self._log_message("Not enough serial ports available. UI is disabled.")
+            self._log_message("Недостаточно доступных портов. UI (графический интерфейс) отключено.")
 
             self.combo_port_1.setEnabled(False)
             self.combo_port_2.setEnabled(False)
@@ -248,21 +246,33 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.central_widget.setEnabled(True)
 
     def _create_toolbar(self):
-        self.toolbar = QtWidgets.QToolBar("COM Port Selection", self)
+        self.toolbar = QtWidgets.QToolBar("Выбор COM-порта", self)
         self.addToolBar(self.toolbar)
 
         self.combo_port_1 = QtWidgets.QComboBox(self)
-        self.combo_port_1.setToolTip("Select COM port for the Relay (Реле)")
+        self.combo_port_1.setToolTip(
+            "Выберите COM-порт для реле. Чтобы не перепутать COM-порты, "
+            "Вы можете посмотреть в мененджер устройств, для этого наберите "
+            'в поиске "Менеджер устройств" -> "COM-порты". Там Вы увидите '
+            "все устройства и их COM-порты."
+        )
         self.toolbar.addWidget(self.combo_port_1)
 
         self.toolbar.addSeparator()
 
         self.combo_port_2 = QtWidgets.QComboBox(self)
-        self.combo_port_2.setToolTip("Select COM port for Gas Flow Regulator (РРГ)")
+        self.combo_port_2.setToolTip(
+            "Выберите COM-порт для РРГ. Чтобы не перепутать COM-порты, "
+            "Вы можете посмотреть в мененджер устройств, для этого наберите "
+            'в поиске "Менеджер устройств" -> "COM-порты". Там Вы увидите '
+            "все устройства и их COM-порты."
+        )
         self.toolbar.addWidget(self.combo_port_2)
 
-        self.refresh_ports_button = QtWidgets.QPushButton("Refresh Ports", self)
-        self.refresh_ports_button.setToolTip("Refresh the list of COM ports")
+        self.refresh_ports_button = QtWidgets.QPushButton("Обновить порты", self)
+        self.refresh_ports_button.setToolTip(
+            "Данная кнопка обновляет список доступных портов"
+        )
         self.toolbar.addWidget(self.refresh_ports_button)
         self.refresh_ports_button.clicked.connect(self._refresh_ports)
 
@@ -274,6 +284,25 @@ class GFRControlWindow(QtWidgets.QMainWindow):
     def _refresh_ports(self):
         self.available_ports: list[str] = self._get_available_ports()
         self._update_combo_boxes(initial=True)
+
+        if not self.available_ports:
+            QMessageBox.warning(
+                self,
+                "Ошибка обновления портов",
+                "Не удалось обновить список доступных портов, возможно у Вас не подключены устройства, перепроверьте подключения",
+                QMessageBox.Ok,
+                QMessageBox.Ok,
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            "Обновление портов",
+            "Список портов обновлен успешно, доступные порты: "
+            + ", ".join(self.available_ports),
+            QMessageBox.Ok,
+            QMessageBox.Ok,
+        )
 
     def _update_combo_boxes(self, initial=False):
         current1 = self.combo_port_1.currentText()
@@ -314,7 +343,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout()
         self.central_widget.setLayout(layout)
 
-        self.toggle_gfr_button = QtWidgets.QPushButton("Turn GFR ON", self)
+        self.toggle_gfr_button = QtWidgets.QPushButton("Включить РРГ", self)
         self.toggle_gfr_button.setCheckable(True)
         self.toggle_gfr_button.clicked.connect(self._toggle_gfr)
         layout.addWidget(self.toggle_gfr_button)
@@ -322,12 +351,14 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         form_layout = QtWidgets.QHBoxLayout()
 
         self.setpoint_line_edit = QtWidgets.QLineEdit(self)
-        self.setpoint_line_edit.setPlaceholderText("Enter flow setpoint (float)")
+        self.setpoint_line_edit.setPlaceholderText("Введите заданный расход (float)")
         double_validator = QtGui.QDoubleValidator(self)
         self.setpoint_line_edit.setValidator(double_validator)
         form_layout.addWidget(self.setpoint_line_edit)
 
-        self.send_setpoint_button = QtWidgets.QPushButton("Send Setpoint", self)
+        self.send_setpoint_button = QtWidgets.QPushButton(
+            "Отправить заданный расход", self
+        )
         self.send_setpoint_button.clicked.connect(self._send_setpoint)
         form_layout.addWidget(self.send_setpoint_button)
 
@@ -341,7 +372,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         self.flow_display = QtWidgets.QTextEdit(self)
         self.flow_display.setReadOnly(True)
-        self.flow_display.setPlaceholderText("Current flow will be displayed here...")
+        self.flow_display.setPlaceholderText(
+            "Текущий расход будет отображаться здесь..."
+        )
         layout.addWidget(self.flow_display)
 
     @QtCore.pyqtSlot()
@@ -355,13 +388,13 @@ class GFRControlWindow(QtWidgets.QMainWindow):
     def _send_setpoint(self):
         text = self.setpoint_line_edit.text()
         if text == "":
-            self._log_message("Setpoint value is empty.")
+            self._log_message("Значение заданного расхода пустое.")
             return
 
         try:
             setpoint = float(text)
         except ValueError:
-            self._log_message("Invalid setpoint value entered.")
+            self._log_message("Неверное значение заданного расхода.")
             return
 
         if self.gfr_controller.IsDisconnected():
@@ -372,7 +405,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if err != MODBUS_OK:
             self._gfr_show_error_msg()
         else:
-            self._log_message(f"Setpoint {setpoint} sent successfully.")
+            self._log_message(f"Заданный расход {setpoint} отправлен успешно.")
 
     def _log_message(self, message: str):
         self.flow_display.append(message)
@@ -386,19 +419,17 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if isinstance(gfr_error, str):
             QMessageBox.critical(
                 self,
-                "Gas Flow Regulator Error",
+                "Ошибка РРГ",
                 f"{self.gfr_controller.GetLastError()}",
             )
         elif isinstance(gfr_error, int) and gfr_error == -1:
             QMessageBox.critical(
                 self,
-                "Gas Flow Regulator Error",
-                "Gas Flow Regulator device is not connected",
+                "Ошибка РРГ",
+                "РРГ не подключено",
             )
         else:
-            QMessageBox.critical(
-                self, "Gas Flow Regulator Error", "Unknown error occured"
-            )
+            QMessageBox.critical(self, "Ошибка РРГ", "Неизвестная ошибка")
 
     def _relay_show_error_msg(self):
         relay_error = self.relay_controller.GetLastError()
@@ -409,14 +440,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if isinstance(relay_error, str):
             QMessageBox.critical(
                 self,
-                "Gas Flow Regulator Error",
+                "Ошибка РРГ",
                 f"{self.relay_controller.GetLastError()}",
             )
         elif isinstance(relay_error, int) and relay_error == -1:
-            QMessageBox.critical(
-                self, "Gas Flow Regulator Error", "Relay device is not connected"
-            )
+            QMessageBox.critical(self, "Ошибка РРГ", "Реле не подключено")
         else:
-            QMessageBox.critical(
-                self, "Gas Flow Regulator Error", "Unknown error occured"
-            )
+            QMessageBox.critical(self, "Ошибка РРГ", "Неизвестная ошибка")

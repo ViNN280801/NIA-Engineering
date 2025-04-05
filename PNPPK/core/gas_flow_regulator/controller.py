@@ -13,7 +13,7 @@ class GFRController:
     def __init__(self):
         self._gfr: Optional[ModbusSerialClient] = None
 
-    @modbus_operation("GAS FLOW REGULATOR Initization", "self._gfr")
+    @modbus_operation("РРГ: Инициализация соединения с устройством", "self._gfr")
     def _init(self, port, baudrate, parity, data_bit, stop_bit, slave_id, timeout):
         self._gfr = ModbusSerialClient(
             port=port,
@@ -25,27 +25,27 @@ class GFRController:
         )
         self._set_slave(slave_id)
         if not self._gfr.connect():
-            raise Exception("Connection failed")
+            raise Exception("Установка соединения с устройством не удалась")
 
-    @modbus_operation("GAS FLOW REGULATOR Closing", "self._gfr")
+    @modbus_operation("РРГ: Закрытие соединения с устройством", "self._gfr")
     def _close(self):
         self._gfr.close()  # type: ignore[checking on None in wrapper]
 
-    @modbus_operation("GAS FLOW REGULATOR Setting Slave", "self._gfr")
+    @modbus_operation("РРГ: Установка Slave", "self._gfr")
     def _set_slave(self, slave_id):
         self._gfr.slaves.append(slave_id)  # type: ignore[checking on None in wrapper]
 
-    @modbus_operation("GAS FLOW REGULATOR Turning On", "self._gfr")
+    @modbus_operation("РРГ: Включение", "self._gfr")
     def TurnOn(self, port, baudrate, parity, data_bit, stop_bit, slave_id, timeout):
         self._init(port, baudrate, parity, data_bit, stop_bit, slave_id, timeout)
 
-    @modbus_operation("GAS FLOW REGULATOR Turning Off", "self._gfr")
+    @modbus_operation("РРГ: Выключение", "self._gfr")
     def TurnOff(self):
         self._close()
 
     @modbus_operation(
-        "GAS FLOW REGULATOR Set Flow (writing to registers "
-        f"{MODBUS_REGISTER_SETPOINT_HIGH} and {MODBUS_REGISTER_SETPOINT_LOW})",
+        "РРГ: Установка расхода (запись в регистры "
+        f"{MODBUS_REGISTER_SETPOINT_HIGH} и {MODBUS_REGISTER_SETPOINT_LOW})",
         "self._gfr",
     )
     def SetFlow(self, setpoint):
@@ -59,8 +59,7 @@ class GFRController:
         self._gfr.write_register(self.MODBUS_REGISTER_SETPOINT_LOW, reg_low)  # type: ignore[checking on None in wrapper]
 
     @modbus_operation(
-        "GAS FLOW REGULATOR Get Flow (reading from register "
-        f"{MODBUS_REGISTER_FLOW})",
+        "РРГ: Получение расхода (чтение из регистра " f"{MODBUS_REGISTER_FLOW})",
         "self._gfr",
     )
     def GetFlow(self):
@@ -74,7 +73,7 @@ class GFRController:
         return flow
 
     @modbus_operation(
-        "GAS FLOW REGULATOR Set Gas (writing to register " f"{MODBUS_REGISTER_GAS})",
+        "РРГ: Установка газа (запись в регистр " f"{MODBUS_REGISTER_GAS})",
         "self._gfr",
     )
     def SetGas(self, gas_id):

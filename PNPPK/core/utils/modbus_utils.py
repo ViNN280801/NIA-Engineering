@@ -66,7 +66,7 @@ def modbus_operation(
                 # Check if device is initialized
                 if device is None:
                     raise Exception(
-                        f"{operation_name} failed: Device is not initialized"
+                        f"{operation_name} не удалось: Устройство не инициализировано (соединение не было успешно установлено)"
                     )
 
                 # Execute the wrapped function
@@ -82,7 +82,7 @@ def modbus_operation(
 
             except Exception as e:
                 # Set error message
-                error_msg = f"{operation_name} failed: {str(e)}"
+                error_msg = f"{operation_name} не удалось: {str(e)}"
                 set_last_error(error_msg)
 
                 # Clean up device if requested
