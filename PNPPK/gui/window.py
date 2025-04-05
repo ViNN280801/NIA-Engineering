@@ -264,20 +264,20 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 f"Конфигурация загружена успешно из файлов: [{gfr_config_path}; {relay_config_path}]. Параметры конфигурации:"
             )
             self._log_message(
-                f"РРГ:\nBaudrate: {self.gfr_baudrate}\n"
+                f"РРГ:\nBaudrate: {self.gfr_baudrate} [бит/с]\n"
                 f"Parity: {self.gfr_parity}\n"
                 f"Data bit: {self.gfr_data_bit}\n"
                 f"Stop bit: {self.gfr_stop_bit}\n"
                 f"Slave ID: {self.gfr_slave_id}\n"
-                f"Timeout: {self.gfr_timeout}"
+                f"Timeout: {self.gfr_timeout} [мс]"
             )
             self._log_message(
-                f"\nРеле:\nBaudrate: {self.relay_baudrate}\n"
+                f"\nРеле:\nBaudrate: {self.relay_baudrate} [бит/с]\n"
                 f"Parity: {self.relay_parity}\n"
                 f"Data bit: {self.relay_data_bit}\n"
                 f"Stop bit: {self.relay_stop_bit}\n"
                 f"Slave ID: {self.relay_slave_id}\n"
-                f"Timeout: {self.relay_timeout}"
+                f"Timeout: {self.relay_timeout} [мс]"
             )
         except Exception as e:
             self._log_message(f"Не удалось загрузить конфигурацию: {e}")
