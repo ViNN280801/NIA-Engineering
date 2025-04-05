@@ -2,7 +2,7 @@
 $ErrorActionPreference = "Stop"
 
 # Define the output name
-$APP_NAME = "rrg_relay"
+$APP_NAME = "gas_flow_regulator"
 
 # Define paths
 $MAIN_SCRIPT = ".\main.py"
@@ -23,8 +23,8 @@ if (Test-Path $BUILD_DIR) { Remove-Item -Recurse -Force $BUILD_DIR }
 # 1. Create venv: python -m venv venv
 # 2. Activate venv: .\venv\Scripts\Activate.ps1
 # 3. Install dependencies: pip install -r requirements.txt
-# 4. Install PyInstaller: pip install pyinstaller
-# 5. Run script: python create_executable.ps1
+# 4. Install PyInstaller: pip install PyInstaller
+# 5. Run script: .\create_executable.ps1
 Write-Host "Building executable..."
 python -m PyInstaller --noconfirm `
 					  --onefile `
