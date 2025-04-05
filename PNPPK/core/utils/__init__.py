@@ -1,6 +1,6 @@
 # core/modbus_utils/__init__.py
 
-from .utils import (
+from .modbus_utils import (
     MODBUS_OK,
     MODBUS_ERROR,
     set_last_error,

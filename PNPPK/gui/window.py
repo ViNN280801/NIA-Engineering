@@ -7,7 +7,7 @@ from core.yaml_config_loader import YAMLConfigLoader
 from PyQt5.QtGui import QKeySequence
 from core.gas_flow_regulator.controller import GFRController
 from core.relay.controller import RelayController
-from core.modbus_utils import MODBUS_OK
+from core.utils import MODBUS_OK
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QMessageBox, QShortcut
 

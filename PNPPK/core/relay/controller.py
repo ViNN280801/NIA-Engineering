@@ -1,6 +1,6 @@
 from typing import Optional
 from pymodbus.client import ModbusSerialClient
-from core.modbus_utils import modbus_operation, get_last_error
+from core.utils import modbus_operation, get_last_error
 
 
 class RelayController:
