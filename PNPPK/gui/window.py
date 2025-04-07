@@ -30,6 +30,7 @@ GFR_DEFAULT_DATA_BIT = 8
 GFR_DEFAULT_STOP_BIT = 1
 
 PLOT_UPDATE_TIME_TICK_MS = 200
+PLOT_MEASUREMENT_COUNTER = 0
 
 
 class GFRControlWindow(QtWidgets.QMainWindow):
@@ -70,10 +71,42 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
-            self._close_connections()
+            self._safe_close_connections()
             event.accept()
         else:
             event.ignore()
+
+    def _safe_close_connections(self):
+        """
+        Safely closes all connections before exiting the application.
+        Ignores possible errors to ensure the exit.
+        """
+        try:
+            # Stop the graph timer
+            if hasattr(self, "graph_timer") and self.graph_timer is not None:
+                self.graph_timer.stop()
+
+            # 1. Disconnect the GFR
+            if self.gfr_controller.IsConnected():
+                try:
+                    self.gfr_controller.TurnOff()
+                    self._log_message("РРГ отключено при выходе.")
+                except Exception as e:
+                    self._log_message(f"Ошибка при отключении РРГ: {e}")
+
+            # 2. Disconnect the relay
+            if self.relay_controller.IsConnected():
+                try:
+                    self.relay_controller.TurnOff()
+                    self._log_message("Реле отключено при выходе.")
+                except Exception as e:
+                    self._log_message(f"Ошибка при отключении реле: {e}")
+
+        except Exception as e:
+            self._log_message(f"Ошибка при закрытии соединений: {e}")
+
+        self.toggle_gfr_button.setChecked(False)
+        self.toggle_gfr_button.setText("Включить РРГ")
 
     def _init_graph(self):
         """Initializes the Matplotlib graph for displaying flow over time."""
@@ -104,51 +137,98 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         Queries the current flow from the GFR controller, appends the data point,
         and updates the Matplotlib graph.
         """
-        if self.gfr_controller.IsDisconnected():
+        # If the GFR is disconnected or in the process of disconnection, add a zero value
+        if (
+            self.gfr_controller.IsDisconnected()
+            or not self.toggle_gfr_button.isChecked()
+        ):
+            current_time = datetime.datetime.now()
+            elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
+
+            # Add zero value to show that the device is disconnected
+            if self.flow_data and len(self.flow_data) > 0:
+                # Add only if this is the first point after disconnection,
+                # to avoid accumulating multiple zero points
+                last_point = self.flow_data[-1]
+                if last_point[1] != 0:
+                    self.flow_data.append((elapsed_minutes, 0))
+                    self._update_plot_visualization()
             return
 
-        err, flow = self.gfr_controller.GetFlow()
+        try:
+            err, flow = self.gfr_controller.GetFlow()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                f"Не удалось получить данные расхода, проверьте соединения проводов и повторите попытку",
+            )
+            return
+
         current_time = datetime.datetime.now()
         elapsed_minutes = (
             current_time - self.start_time
         ).total_seconds() / 60  # Convert to minutes
 
         if err == MODBUS_OK:
+            # If the last point was zero and we got new data,
+            # it means the device just turned on
+            if (
+                self.flow_data
+                and len(self.flow_data) > 0
+                and self.flow_data[-1][1] == 0
+            ):
+                # Check if an additional zero point was already added
+                # when the device was turned on in the _open_connections method
+                if len(self.flow_data) > 1 and self.flow_data[-2][1] == 0:
+                    # If there was a long break between points, add another zero point
+                    # directly before the current moment
+                    time_diff = elapsed_minutes - self.flow_data[-1][0]
+                    if time_diff > 0.05:  # Если прошло более 3 секунд
+                        self.flow_data.append((elapsed_minutes - 0.001, 0))
+
             self.flow_data.append((elapsed_minutes, flow))
+            self._update_plot_visualization()
 
-            times = [t for t, _ in self.flow_data]
-            flows = [f for _, f in self.flow_data]
+            global PLOT_MEASUREMENT_COUNTER
+            PLOT_MEASUREMENT_COUNTER += 1
 
-            self.ax.clear()
-            self.ax.plot(times, flows, marker="o", linestyle="-")
-
-            self.ax.set_xlabel("Время [мин]")
-            self.ax.set_ylabel("Расход [см3/мин]")
-            self.ax.set_title("Расход газа по времени Qm(t)")
-
-            # Automatic scaling of axes
-            if len(times) > 1:
-                x_min = min(times)
-                x_max = max(times) * 1.05  # 5% shift to the right
-                self.ax.set_xlim(x_min, x_max)
-
-                if len(flows) > 0:
-                    y_min = min(flows) * 0.95 if min(flows) > 0 else min(flows) * 1.05
-                    y_max = max(flows) * 1.05 if max(flows) > 0 else max(flows) * 0.95
-                    self.ax.set_ylim(y_min, y_max)
-
-            self.ax.minorticks_on()
-            self.ax.grid(True, which="major", linestyle="-", linewidth=0.8)
-            self.ax.grid(True, which="minor", linestyle="--", linewidth=0.5, alpha=0.5)
-
-            if hasattr(self, "canvas"):
-                self.canvas.draw()
-
-            self._log_message(
-                f"Текущий расход: {flow} [см3/мин] в момент времени {elapsed_minutes:.2f} [мин]"
-            )
+            # Each 50 times we will log the message
+            if PLOT_MEASUREMENT_COUNTER % 50 == 0:
+                self._log_message(
+                    f"Текущий расход: {flow} [см3/мин] в момент времени {elapsed_minutes:.2f} [мин]"
+                )
         else:
             self._gfr_show_error_msg()
+
+    def _update_plot_visualization(self):
+        times = [t for t, _ in self.flow_data]
+        flows = [f for _, f in self.flow_data]
+
+        self.ax.clear()
+        self.ax.plot(times, flows, marker="o", linestyle="-")
+
+        self.ax.set_xlabel("Время [мин]")
+        self.ax.set_ylabel("Расход [см3/мин]")
+        self.ax.set_title("Расход газа по времени Qm(t)")
+
+        # Automatic scaling of axes
+        if len(times) > 1:
+            x_min = min(times)
+            x_max = max(times) * 1.05  # 5% shift to the right
+            self.ax.set_xlim(x_min, x_max)
+
+            if len(flows) > 0:
+                y_min = min(flows) * 0.95 if min(flows) > 0 else min(flows) * 1.05
+                y_max = max(flows) * 1.05 if max(flows) > 0 else max(flows) * 0.95
+                self.ax.set_ylim(y_min, y_max)
+
+        self.ax.minorticks_on()
+        self.ax.grid(True, which="major", linestyle="-", linewidth=0.8)
+        self.ax.grid(True, which="minor", linestyle="--", linewidth=0.5, alpha=0.5)
+
+        if hasattr(self, "canvas"):
+            self.canvas.draw()
 
     def _confirm_close(self):
         """
@@ -162,7 +242,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
-            self._close_connections()
+            self._safe_close_connections()
             QtWidgets.QApplication.quit()
 
     def _open_connections(self):
@@ -187,6 +267,27 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         # 2. Connect to the Gas Flow Regulator
         gfr_port = self.combo_port_2.currentText()
+
+        if relay_port == gfr_port:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Реле и РРГ подключены к одному порту. Пожалуйста, измените порты и повторите попытку.",
+            )
+            return
+
+        # Add a zero point in the moment of inclusion
+        # to see the "step" of inclusion on the graph
+        current_time = datetime.datetime.now()
+        elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
+
+        # Check if the device was turned off before this (is there a zero point at the end of the graph)
+        if self.flow_data and len(self.flow_data) > 0 and self.flow_data[-1][1] == 0:
+            # Add a point with the same moment in time, but with a zero value
+            # to create a "step" of inclusion
+            self.flow_data.append((elapsed_minutes, 0))
+            self._update_plot_visualization()
+
         gfr_err = self.gfr_controller.TurnOn(
             gfr_port,
             baudrate=self.gfr_baudrate,
@@ -204,11 +305,33 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message(f"РРГ подключено к порту {gfr_port}.")
             self.toggle_gfr_button.setText("Выключить РРГ")
 
+            # After successful inclusion, make a small delay
+            # before the first measurement, so the action is visible on the graph
+            QtCore.QTimer.singleShot(200, self._force_update_graph)
+
+    def _force_update_graph(self):
+        if self.gfr_controller.IsConnected() and self.toggle_gfr_button.isChecked():
+            try:
+                err, flow = self.gfr_controller.GetFlow()
+                if err == MODBUS_OK:
+                    current_time = datetime.datetime.now()
+                    elapsed_minutes = (
+                        current_time - self.start_time
+                    ).total_seconds() / 60
+                    self.flow_data.append((elapsed_minutes, flow))
+                    self._update_plot_visualization()
+                    self._log_message(f"Расход после включения: {flow} [см3/мин]")
+            except Exception as e:
+                self._log_message(f"Ошибка при обновлении графика после включения: {e}")
+
     def _close_connections(self):
         """
         Safely closes the connections for the Gas Flow Regulator and Relay devices.
         This method calls the appropriate TurnOff/close methods on the controllers.
         """
+        self.toggle_gfr_button.setChecked(False)
+        self.toggle_gfr_button.setText("Включить РРГ")
+
         # 1. Turn off the Gas Flow Regulator
         if self.gfr_controller.IsConnected():
             gfr_err = self.gfr_controller.TurnOff()
@@ -225,6 +348,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 self._relay_show_error_msg()
             else:
                 self._log_message("Реле отключено.")
+
+        current_time = datetime.datetime.now()
+        elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
+        if self.flow_data and len(self.flow_data) > 0:
+            self.flow_data.append((elapsed_minutes, 0))
+            self._update_plot_visualization()
 
     def _load_config_data(self):
         gfr_config_path = os.path.join(
@@ -426,7 +555,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         form_layout.addWidget(self.setpoint_line_edit)
 
         self.send_setpoint_button = QtWidgets.QPushButton(
-            "Отправить заданный расход", self
+            "Задать уставку расхода", self
         )
         self.send_setpoint_button.clicked.connect(self._send_setpoint)
         form_layout.addWidget(self.send_setpoint_button)

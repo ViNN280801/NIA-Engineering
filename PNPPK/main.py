@@ -87,6 +87,7 @@ def main():
     # Install the SIGINT handler for Ctrl+C.
     signal.signal(signal.SIGINT, sigint_handler)
     app = QtWidgets.QApplication(sys.argv)
+    global window
     window = GFRControlWindow()
     window.show()
     sys.exit(app.exec_())
@@ -108,4 +109,8 @@ if __name__ == "__main__":
             log_filename = f"crash-log-{now}.log"
             with open(log_filename, "w") as log_file:
                 traceback.print_exc(file=log_file)
+            
+            global window
+            window._safe_close_connections()
+            
             sys.exit(1)
