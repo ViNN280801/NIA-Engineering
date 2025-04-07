@@ -77,7 +77,6 @@ def modbus_operation(
                 try:
                     result = func(self, *args, **kwargs)
                 except Exception as inner_e:
-                    # Если произошла ошибка внутри функции
                     error_msg = f"{operation_name} не удалось: {str(inner_e)}"
                     set_last_error(error_msg)
 
