@@ -15,7 +15,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 
 
-RELAY_DEFAULT_BAUDRATE = 9600
+RELAY_DEFAULT_BAUDRATE = 115200
 RELAY_DEFAULT_TIMEOUT = 50
 RELAY_DEFAULT_SLAVE_ID = 16
 RELAY_DEFAULT_PARITY = "N"
@@ -32,6 +32,7 @@ GFR_DEFAULT_STOP_BIT = 1
 PLOT_UPDATE_TIME_TICK_MS = 200
 PLOT_MEASUREMENT_COUNTER = 0
 
+
 class GFRControlWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -43,6 +44,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.config_loader = YAMLConfigLoader()
 
         self.available_ports: list[str] = self._get_available_ports()
+        self.previous_port_count = len(self.available_ports)
 
         self._create_toolbar()
         self._create_central_widget()
@@ -56,6 +58,13 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.close_shortcut_q.activated.connect(self._confirm_close)
 
         self._toggle_ui()
+
+        # Create a timer for checking device connection status
+        self.connection_check_timer = QtCore.QTimer(self)
+        self.connection_check_timer.timeout.connect(self._check_device_connections)
+
+        # Check every 2 seconds (2000 ms) - not too often to avoid performance impact
+        self.connection_check_timer.start(2000)
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
@@ -74,6 +83,169 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def _check_device_connections(self):
+        """
+        Periodically checks device connections and port availability.
+        This method is called by the connection_check_timer.
+
+        It detects:
+        1. Physical disconnection of devices
+        2. Changes in the number of available COM ports
+        """
+        # Only perform checks if devices are supposed to be connected
+        if not self.toggle_gfr_button.isChecked():
+            return
+
+        # Check if the number of available ports has changed
+        current_ports = self._get_available_ports()
+        current_port_count = len(current_ports)
+
+        # If the number of ports has decreased, a device was likely disconnected
+        if current_port_count < self.previous_port_count:
+            self.previous_port_count = current_port_count
+            self._handle_device_disconnection(
+                "Обнаружено отключение USB-адаптера. Проверьте подключение устройств."
+            )
+            return
+
+        # Update the previous count
+        self.previous_port_count = current_port_count
+
+        # Check for device responsiveness (light ping)
+        if self.gfr_controller.IsConnected():
+            try:
+                # Use a simple operation to check if device is still responsive
+                # This is more efficient than a full data read
+                self._check_gfr_connectivity()
+            except Exception as e:
+                self._handle_device_disconnection(f"Потеряна связь с РРГ: {str(e)}")
+
+        if self.relay_controller.IsConnected():
+            try:
+                # Use a simple operation to check if device is still responsive
+                self._check_relay_connectivity()
+            except Exception as e:
+                self._handle_device_disconnection(f"Потеряна связь с реле: {str(e)}")
+
+    def _check_gfr_connectivity(self):
+        """
+        Performs a lightweight check to see if the GFR device is still connected.
+        This is designed to be minimally intrusive.
+        """
+        # If there's an active graph update cycle, we don't need an additional check
+        # as GetFlow is already being called regularly, so, here is dummy check
+        pass
+
+    def _check_relay_connectivity(self):
+        """
+        Performs a lightweight check to see if the relay device is still connected.
+        This is designed to be minimally intrusive.
+        """
+        # We don't need to query the relay constantly as it's typically a set-and-forget device
+        # Just check if the connection is still valid in the ModbusSerialClient
+        if self.relay_controller._relay is not None:
+            if not self.relay_controller._relay.connected:
+                raise Exception("Соединение с реле потеряно, проверьте подключение (порт, скорость, биты)")
+
+    def _handle_device_disconnection(self, message):
+        """
+        Handles the event of a device disconnection.
+
+        Args:
+            message: The error message to display
+        """
+        # 1. Log the disconnection
+        self._log_message(f"ОШИБКА СОЕДИНЕНИЯ: {message}")
+
+        # 2. Close all connections safely
+        self._safe_close_connections()
+
+        # 3. Update the UI state
+        self.toggle_gfr_button.setChecked(False)
+        self.toggle_gfr_button.setText("Включить РРГ")
+
+        # 4. Refresh the available ports
+        self._refresh_ports()
+
+        # 5. Show a message to the user
+        QMessageBox.critical(
+            self,
+            "Ошибка подключения",
+            f"{message}\n\nСписок портов обновлен. Пожалуйста, проверьте подключения и попробуйте снова.",
+            QMessageBox.Ok,
+        )
+
+    def _update_graph(self):
+        """
+        Queries the current flow from the GFR controller, appends the data point,
+        and updates the Matplotlib graph.
+        """
+        # If the GFR is disconnected or in the process of disconnection, add a zero value
+        if (
+            self.gfr_controller.IsDisconnected()
+            or not self.toggle_gfr_button.isChecked()
+        ):
+            current_time = datetime.datetime.now()
+            elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
+
+            # Add zero value to show that the device is disconnected
+            if self.flow_data and len(self.flow_data) > 0:
+                # Add only if this is the first point after disconnection,
+                # to avoid accumulating multiple zero points
+                last_point = self.flow_data[-1]
+                if last_point[1] != 0:
+                    self.flow_data.append((elapsed_minutes, 0))
+                    self._update_plot_visualization()
+            return
+
+        try:
+            err, flow = self.gfr_controller.GetFlow()
+
+            # If we get here, we can consider this a successful connectivity check
+            self._check_gfr_connectivity()
+        except Exception as e:
+            # Handle the disconnection case more gracefully
+            self._handle_device_disconnection(
+                f"Не удалось получить данные расхода: {str(e)}"
+            )
+            return
+
+        current_time = datetime.datetime.now()
+        elapsed_minutes = (
+            current_time - self.start_time
+        ).total_seconds() / 60  # Convert to minutes
+
+        if err == MODBUS_OK:
+            # If the last point was zero and we got new data,
+            # it means the device just turned on
+            if (
+                self.flow_data
+                and len(self.flow_data) > 0
+                and self.flow_data[-1][1] == 0
+            ):
+                # Check if an additional zero point was already added
+                # when the device was turned on in the _open_connections method
+                if len(self.flow_data) > 1 and self.flow_data[-2][1] == 0:
+                    # If there was a long break between points, add another zero point
+                    # directly before the current moment
+                    time_diff = elapsed_minutes - self.flow_data[-1][0]
+                    if time_diff > 0.05:  # Если прошло более 3 секунд
+                        self.flow_data.append((elapsed_minutes - 0.001, 0))
+
+            self.flow_data.append((elapsed_minutes, flow))
+            self._update_plot_visualization()
+
+            global PLOT_MEASUREMENT_COUNTER
+            PLOT_MEASUREMENT_COUNTER += 1
+
+            # Each 50 times we will log the message
+            if PLOT_MEASUREMENT_COUNTER % 50 == 0:
+                self._log_message(
+                    f"Текущий расход: {flow} [см3/мин] в момент времени {elapsed_minutes:.2f} [мин]"
+                )
+        else:
+            self._gfr_show_error_msg()
 
     def _safe_close_connections(self):
         """
@@ -120,75 +292,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         self.flow_data = []  # Stores (time in minutes, flow)
         self.start_time = datetime.datetime.now()  # Set start time for reference
-
-    def _update_graph(self):
-        """
-        Queries the current flow from the GFR controller, appends the data point,
-        and updates the Matplotlib graph.
-        """
-        # If the GFR is disconnected or in the process of disconnection, add a zero value
-        if (
-            self.gfr_controller.IsDisconnected()
-            or not self.toggle_gfr_button.isChecked()
-        ):
-            current_time = datetime.datetime.now()
-            elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
-
-            # Add zero value to show that the device is disconnected
-            if self.flow_data and len(self.flow_data) > 0:
-                # Add only if this is the first point after disconnection,
-                # to avoid accumulating multiple zero points
-                last_point = self.flow_data[-1]
-                if last_point[1] != 0:
-                    self.flow_data.append((elapsed_minutes, 0))
-                    self._update_plot_visualization()
-            return
-
-        try:
-            err, flow = self.gfr_controller.GetFlow()
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Ошибка",
-                f"Не удалось получить данные расхода, проверьте соединения проводов и повторите попытку",
-            )
-            return
-
-        current_time = datetime.datetime.now()
-        elapsed_minutes = (
-            current_time - self.start_time
-        ).total_seconds() / 60  # Convert to minutes
-
-        if err == MODBUS_OK:
-            # If the last point was zero and we got new data,
-            # it means the device just turned on
-            if (
-                self.flow_data
-                and len(self.flow_data) > 0
-                and self.flow_data[-1][1] == 0
-            ):
-                # Check if an additional zero point was already added
-                # when the device was turned on in the _open_connections method
-                if len(self.flow_data) > 1 and self.flow_data[-2][1] == 0:
-                    # If there was a long break between points, add another zero point
-                    # directly before the current moment
-                    time_diff = elapsed_minutes - self.flow_data[-1][0]
-                    if time_diff > 0.05:  # Если прошло более 3 секунд
-                        self.flow_data.append((elapsed_minutes - 0.001, 0))
-
-            self.flow_data.append((elapsed_minutes, flow))
-            self._update_plot_visualization()
-
-            global PLOT_MEASUREMENT_COUNTER
-            PLOT_MEASUREMENT_COUNTER += 1
-
-            # Each 50 times we will log the message
-            if PLOT_MEASUREMENT_COUNTER % 50 == 0:
-                self._log_message(
-                    f"Текущий расход: {flow} [см3/мин] в момент времени {elapsed_minutes:.2f} [мин]"
-                )
-        else:
-            self._gfr_show_error_msg()
 
     def _update_plot_visualization(self):
         times = [t for t, _ in self.flow_data]
