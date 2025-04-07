@@ -89,7 +89,7 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     global window
     window = GFRControlWindow()
-    window.show()
+    window.showMaximized()
     sys.exit(app.exec_())
 
 
