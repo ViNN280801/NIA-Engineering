@@ -2,14 +2,50 @@
 
 ## How to run tests?
 
+### 1. Running without using real devices
+
 ```bash
 pytest .\tests\ -v --log-cli-level=INFO
 ```
 
+### 2. Running with using real devices
+
+```bash
+pytest .\tests\ -v --log-cli-level=INFO --real-devices
+```
+
+> Example of the running without real devices:
+```
+tests/test_auto_dialog.py::test_gfr_window_dialog_auto_closing PASSED                                                                                [  3%]
+tests/test_controllers_integration.py::TestControllersIntegration::test_sequential_operations PASSED                                                 [  4%]
+tests/test_controllers_integration.py::TestControllersIntegration::test_concurrent_operations PASSED                                                 [  5%]
+tests/test_controllers_integration.py::TestControllersIntegration::test_shared_port_handling
+---------------------------------------------------------------------- live log call ----------------------------------------------------------------------
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+FAILED                                                                                                                                               [  6%]
+tests/test_controllers_integration.py::TestControllersIntegration::test_error_propagation PASSED                                                     [  7%]
+tests/test_controllers_integration.py::TestControllersIntegration::test_device_disconnection_handling PASSED                                         [  8%]
+tests/test_controllers_integration.py::TestControllersWorkflow::test_gas_flow_experiment PASSED                                                      [  9%]
+tests/test_gfr_controller.py::TestGFRControllerUnit::test_init_creates_modbus_client
+---------------------------------------------------------------------- live log call ----------------------------------------------------------------------
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+FAILED                                                                                                                                               [  9%]
+tests/test_gfr_controller.py::TestGFRControllerUnit::test_init_connection_failure
+---------------------------------------------------------------------- live log call ----------------------------------------------------------------------
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+ERROR    pymodbus.logging:serial.py:250 could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2)
+```
+
 ### Flags:
 
-- `-v` - verbosing
-- `--log-cli-level=<LOG_LEVEL>` - sets the log level
+- `-v` - verbosing;
+- `--log-cli-level=<LOG_LEVEL>` - sets the log level;
+- `--real-devices` - run tests for the real devices.
 
 ### Example of running:
 
