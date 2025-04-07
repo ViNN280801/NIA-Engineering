@@ -146,7 +146,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         # Just check if the connection is still valid in the ModbusSerialClient
         if self.relay_controller._relay is not None:
             if not self.relay_controller._relay.connected:
-                raise Exception("Соединение с реле потеряно, проверьте подключение (порт, скорость, биты)")
+                raise Exception(
+                    "Соединение с реле потеряно, проверьте подключение (порт, скорость, биты)"
+                )
 
     def _handle_device_disconnection(self, message):
         """

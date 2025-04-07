@@ -109,8 +109,8 @@ if __name__ == "__main__":
             log_filename = f"crash-log-{now}.log"
             with open(log_filename, "w") as log_file:
                 traceback.print_exc(file=log_file)
-            
+
             global window
             window._safe_close_connections()
-            
+
             sys.exit(1)
