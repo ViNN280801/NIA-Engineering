@@ -29,7 +29,7 @@ GFR_DEFAULT_PARITY = "N"
 GFR_DEFAULT_DATA_BIT = 8
 GFR_DEFAULT_STOP_BIT = 1
 
-PLOT_UPDATE_TIME_TICK_MS = 50
+PLOT_UPDATE_TIME_TICK_MS = 200
 
 
 class GFRControlWindow(QtWidgets.QMainWindow):
@@ -56,7 +56,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.close_shortcut_q.activated.connect(self._confirm_close)
 
         self._disable_ui()
-        self._load_config_data()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
@@ -116,7 +115,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         if err == MODBUS_OK:
             self.flow_data.append((elapsed_minutes, flow))
-            self.flow_data = self.flow_data[-60:]  # Keep only last 60 data points
 
             times = [t for t, _ in self.flow_data]
             flows = [f for _, f in self.flow_data]
@@ -127,6 +125,17 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.ax.set_xlabel("Время [мин]")
             self.ax.set_ylabel("Расход [см3/мин]")
             self.ax.set_title("Расход газа по времени Qm(t)")
+
+            # Automatic scaling of axes
+            if len(times) > 1:
+                x_min = min(times)
+                x_max = max(times) * 1.05  # 5% shift to the right
+                self.ax.set_xlim(x_min, x_max)
+
+                if len(flows) > 0:
+                    y_min = min(flows) * 0.95 if min(flows) > 0 else min(flows) * 1.05
+                    y_max = max(flows) * 1.05 if max(flows) > 0 else max(flows) * 0.95
+                    self.ax.set_ylim(y_min, y_max)
 
             self.ax.minorticks_on()
             self.ax.grid(True, which="major", linestyle="-", linewidth=0.8)
@@ -157,6 +166,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QtWidgets.QApplication.quit()
 
     def _open_connections(self):
+        self._load_config_data()
+
         # 1. Connect to the relay
         relay_port = self.combo_port_1.currentText()
         relay_err = self.relay_controller.TurnOn(
@@ -422,6 +433,23 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         layout.addLayout(form_layout)
 
+        # Buttons for working with the graph
+        graph_controls_layout = QtWidgets.QHBoxLayout()
+
+        self.clear_graph_button = QtWidgets.QPushButton("Очистить график", self)
+        self.clear_graph_button.clicked.connect(self._clear_graph)
+        graph_controls_layout.addWidget(self.clear_graph_button)
+
+        self.save_data_button = QtWidgets.QPushButton("Сохранить данные CSV", self)
+        self.save_data_button.clicked.connect(self._save_data_to_csv)
+        graph_controls_layout.addWidget(self.save_data_button)
+
+        self.save_image_button = QtWidgets.QPushButton("Сохранить график PNG", self)
+        self.save_image_button.clicked.connect(self._save_graph_as_image)
+        graph_controls_layout.addWidget(self.save_image_button)
+
+        layout.addLayout(graph_controls_layout)
+
         # --- Initialize the graph ---
         self._init_graph()
         self.graph_timer = QtCore.QTimer(self)
@@ -498,10 +526,106 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if isinstance(relay_error, str):
             QMessageBox.critical(
                 self,
-                "Ошибка РРГ",
+                "Ошибка реле",
                 f"{self.relay_controller.GetLastError()}",
             )
         elif isinstance(relay_error, int) and relay_error == MODBUS_ERROR:
-            QMessageBox.critical(self, "Ошибка РРГ", "Реле не подключено")
+            QMessageBox.critical(self, "Ошибка реле", "Реле не подключено")
         else:
-            QMessageBox.critical(self, "Ошибка РРГ", "Неизвестная ошибка")
+            QMessageBox.critical(self, "Ошибка реле", "Неизвестная ошибка")
+
+    def _clear_graph(self):
+        self.flow_data = []
+        self.start_time = datetime.datetime.now()
+        self.ax.clear()
+        self.ax.set_xlabel("Время [мин]")
+        self.ax.set_ylabel("Расход [см3/мин]")
+        self.ax.set_title("Расход газа по времени Qm(t)")
+        self.ax.grid(True)
+        self.canvas.draw()
+        self._log_message("График очищен. Начинаем новые измерения.")
+
+    def _save_data_to_csv(self):
+        if not self.flow_data:
+            QMessageBox.warning(
+                self,
+                "Нет данных",
+                "Нет данных для сохранения. Запустите измерения сначала.",
+                QMessageBox.Ok,
+            )
+            return
+
+        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f"flow_data_{now}.csv"
+
+        try:
+            with open(file_name, "w") as f:
+                f.write("Время [мин],Расход [см3/мин]\n")
+                for time, flow in self.flow_data:
+                    f.write(f"{time:.2f},{flow:.3f}\n")
+
+            self._log_message(f"Данные сохранены в файл: {file_name}")
+
+            QMessageBox.information(
+                self,
+                "Данные сохранены",
+                f"Данные успешно сохранены в файл: {file_name}",
+                QMessageBox.Ok,
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                f"Не удалось сохранить данные: {str(e)}",
+                QMessageBox.Ok,
+            )
+            self._log_message(f"Ошибка сохранения данных: {str(e)}")
+
+    def _save_graph_as_image(self):
+        if not self.flow_data:
+            QMessageBox.warning(
+                self,
+                "Нет данных",
+                "Нет данных для сохранения графика. Запустите измерения сначала.",
+                QMessageBox.Ok,
+            )
+            return
+
+        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f"flow_graph_{now}.png"
+
+        try:
+            fig = Figure(figsize=(12, 8), dpi=100)
+            ax = fig.add_subplot(111)
+
+            times = [t for t, _ in self.flow_data]
+            flows = [f for _, f in self.flow_data]
+
+            ax.plot(times, flows, marker="o", linestyle="-")
+            ax.set_xlabel("Время [мин]")
+            ax.set_ylabel("Расход [см3/мин]")
+            ax.set_title("Расход газа по времени Qm(t)")
+
+            ax.minorticks_on()
+            ax.grid(True, which="major", linestyle="-", linewidth=0.8)
+            ax.grid(True, which="minor", linestyle="--", linewidth=0.5, alpha=0.5)
+
+            fig.tight_layout()
+            fig.savefig(file_name, format="png", dpi=300)
+
+            self._log_message(f"График сохранен в файл: {file_name}")
+
+            QMessageBox.information(
+                self,
+                "График сохранен",
+                f"График успешно сохранен в файл: {file_name}",
+                QMessageBox.Ok,
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                f"Не удалось сохранить график: {str(e)}",
+                QMessageBox.Ok,
+            )
+            self._log_message(f"Ошибка сохранения графика: {str(e)}")

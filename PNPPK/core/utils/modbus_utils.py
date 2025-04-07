@@ -31,6 +31,8 @@ def modbus_operation(
     cleanup_on_error: bool = True,
     return_on_success: int = MODBUS_OK,
     return_on_error: int = MODBUS_ERROR,
+    skip_device_check: bool = False,
+    preserve_return_value: bool = False,
 ):
     """
     Decorator for safely executing Modbus operations with standardized error handling.
@@ -43,15 +45,17 @@ def modbus_operation(
     Args:
         operation_name: Human-readable name of the operation for error messages
         device_attr: Name of the instance attribute that holds the device object
+                    (without 'self.', e.g. '_relay' not 'self._relay')
         cleanup_on_error: Whether to cleanup the device attribute on error
         return_on_success: Value to return on successful operation
         return_on_error: Value to return on failed operation
+        skip_device_check: If True, skip checking if device is None before executing
 
     Returns:
         A decorator function that wraps Modbus operations
 
     Example:
-        @modbus_operation("Turning On")
+        @modbus_operation("Turning On", "_relay")
         def turn_on(self):
             self._relay.write_register(REGISTER_TURN_ON_OFF, 1)
     """
@@ -59,26 +63,43 @@ def modbus_operation(
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
         def wrapper(self: Any, *args: Any, **kwargs: Any) -> int:
-            # Get the device attribute from the instance
-            device = getattr(self, device_attr, None)
+            attr_name = device_attr.replace("self.", "")
+            device = getattr(self, attr_name, None)
 
             try:
                 # Check if device is initialized
-                if device is None:
-                    raise Exception(
-                        f"{operation_name} не удалось: Устройство не инициализировано (соединение не было успешно установлено)"
-                    )
+                if not skip_device_check and device is None:
+                    error_message = f"{operation_name} не удалось: Устройство не инициализировано (соединение не было успешно установлено)"
+                    set_last_error(error_message)
+                    return return_on_error
 
                 # Execute the wrapped function
-                result = func(self, *args, **kwargs)
+                try:
+                    result = func(self, *args, **kwargs)
+                except Exception as inner_e:
+                    # Если произошла ошибка внутри функции
+                    error_msg = f"{operation_name} не удалось: {str(inner_e)}"
+                    set_last_error(error_msg)
+
+                    if cleanup_on_error and device is not None:
+                        try:
+                            if hasattr(device, "close"):
+                                device.close()
+                        except Exception:
+                            pass
+                        setattr(self, attr_name, None)
+
+                    return return_on_error
 
                 if result == MODBUS_ERROR:
                     set_last_error(get_last_error())
                     return return_on_error
 
-                # Reset error state on success
-                reset_last_error()
-                return return_on_success
+                if preserve_return_value:
+                    return result
+                else:
+                    reset_last_error()
+                    return return_on_success
 
             except Exception as e:
                 # Set error message
@@ -91,16 +112,12 @@ def modbus_operation(
                         # Try to close the connection if available
                         if hasattr(device, "close"):
                             device.close()
-                        device = None
                     except Exception:
                         # Ignore errors during cleanup
                         pass
 
                     # Reset device attribute if cleanup requested
-                    setattr(self, device_attr, None)
-
-                else:
-                    set_last_error(f"{e}")
+                    setattr(self, attr_name, None)
 
                 return return_on_error
 

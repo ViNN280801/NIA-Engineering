@@ -1,7 +1,7 @@
 # /config/relay.yaml
 # Configuration for the Relay device
 baudrate: 115200 # Baud rate for communication
-slave_id: 6      # MODBUS slave ID for the Relay
+slave_id: 16     # MODBUS slave ID for the Relay
 timeout: 10      # Response timeout in milliseconds
 data_bits: 8     # Count of data bits
 stop_bits: 1     # Count of stop bits
