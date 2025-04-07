@@ -32,7 +32,6 @@ GFR_DEFAULT_STOP_BIT = 1
 PLOT_UPDATE_TIME_TICK_MS = 200
 PLOT_MEASUREMENT_COUNTER = 0
 
-
 class GFRControlWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -56,7 +55,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.close_shortcut_q.setKey(QKeySequence("Ctrl+Q"))
         self.close_shortcut_q.activated.connect(self._confirm_close)
 
-        self._disable_ui()
+        self._toggle_ui()
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
@@ -121,16 +120,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         self.flow_data = []  # Stores (time in minutes, flow)
         self.start_time = datetime.datetime.now()  # Set start time for reference
-
-        central_widget = self.centralWidget()
-        if central_widget is not None:
-            layout = central_widget.layout()
-            if layout is not None:
-                layout.addWidget(self.canvas)
-            else:
-                raise ValueError("DEBUG: Layout is None, cannot add graph")
-        else:
-            raise ValueError("DEBUG: Central widget is None, cannot add graph")
 
     def _update_graph(self):
         """
@@ -261,13 +250,17 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         )
         if relay_err != MODBUS_OK:
             self._relay_show_error_msg()
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Не удалось подключить реле. Пожалуйста, проверьте соединения проводов и повторите попытку.",
+            )
             return
         else:
             self._log_message(f"Реле подключено к порту {relay_port}.")
 
         # 2. Connect to the Gas Flow Regulator
         gfr_port = self.combo_port_2.currentText()
-
         if relay_port == gfr_port:
             QMessageBox.critical(
                 self,
@@ -299,6 +292,11 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         )
         if gfr_err != MODBUS_OK:
             self._gfr_show_error_msg()
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Не удалось подключить РРГ. Пожалуйста, проверьте соединения проводов и повторите попытку.",
+            )
             self.toggle_gfr_button.setChecked(False)
             self.toggle_gfr_button.setText("Включить РРГ")
         else:
@@ -427,7 +425,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         available = [port.device for port in ports]
         return available
 
-    def _disable_ui(self):
+    def _toggle_ui(self):
         if len(self.available_ports) < 2:
             self._log_message(
                 "Недостаточно доступных портов. Графический интерфейс отключен."
@@ -480,6 +478,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
     def _refresh_ports(self):
         self.available_ports: list[str] = self._get_available_ports()
         self._update_combo_boxes(initial=True)
+        self._toggle_ui()
 
         if not self.available_ports:
             QMessageBox.warning(
@@ -533,22 +532,23 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self._update_combo_boxes()
 
     def _create_central_widget(self):
+        # Create main widget and layout
         self.central_widget = QtWidgets.QWidget(self)
         self.setCentralWidget(self.central_widget)
-
         layout = QtWidgets.QVBoxLayout()
         self.central_widget.setLayout(layout)
 
+        # Control button for GFR
         self.toggle_gfr_button = QtWidgets.QPushButton("Включить РРГ", self)
         self.toggle_gfr_button.setCheckable(True)
         self.toggle_gfr_button.clicked.connect(self._toggle_gfr)
         layout.addWidget(self.toggle_gfr_button)
 
+        # Setpoint input
         form_layout = QtWidgets.QHBoxLayout()
-
         self.setpoint_line_edit = QtWidgets.QLineEdit(self)
         self.setpoint_line_edit.setPlaceholderText(
-            "Введите заданный расход в дробной форме (например: 50.5)"
+            "Введите заданный расход в дробной форме (например: 50,5)"
         )
         double_validator = QtGui.QDoubleValidator(self)
         self.setpoint_line_edit.setValidator(double_validator)
@@ -559,12 +559,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         )
         self.send_setpoint_button.clicked.connect(self._send_setpoint)
         form_layout.addWidget(self.send_setpoint_button)
-
         layout.addLayout(form_layout)
 
         # Buttons for working with the graph
         graph_controls_layout = QtWidgets.QHBoxLayout()
-
         self.clear_graph_button = QtWidgets.QPushButton("Очистить график", self)
         self.clear_graph_button.clicked.connect(self._clear_graph)
         graph_controls_layout.addWidget(self.clear_graph_button)
@@ -576,21 +574,43 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.save_image_button = QtWidgets.QPushButton("Сохранить график PNG", self)
         self.save_image_button.clicked.connect(self._save_graph_as_image)
         graph_controls_layout.addWidget(self.save_image_button)
-
         layout.addLayout(graph_controls_layout)
 
-        # --- Initialize the graph ---
-        self._init_graph()
-        self.graph_timer = QtCore.QTimer(self)
-        self.graph_timer.timeout.connect(self._update_graph)
-        self.graph_timer.start(PLOT_UPDATE_TIME_TICK_MS)
+        # Create a splitter to allow resizing between graph and console
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical)
+        layout.addWidget(self.splitter)
 
+        # Create container widget for the graph
+        self.graph_container = QtWidgets.QWidget()
+        graph_layout = QtWidgets.QVBoxLayout(self.graph_container)
+        graph_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+
+        # Initialize the graph
+        self._init_graph()
+        graph_layout.addWidget(self.canvas)
+
+        # Create log console
         self.log_console = QtWidgets.QTextEdit(self)
         self.log_console.setReadOnly(True)
         self.log_console.setPlaceholderText(
             "Текущий расход будет отображаться здесь..."
         )
-        layout.addWidget(self.log_console)
+
+        # Set minimum heights for better usability
+        self.graph_container.setMinimumHeight(300)
+        self.log_console.setMinimumHeight(100)
+
+        # Add widgets to splitter
+        self.splitter.addWidget(self.graph_container)
+        self.splitter.addWidget(self.log_console)
+
+        # Set initial sizes (70% graph, 30% console)
+        self.splitter.setSizes([700, 300])
+
+        # Start graph timer
+        self.graph_timer = QtCore.QTimer(self)
+        self.graph_timer.timeout.connect(self._update_graph)
+        self.graph_timer.start(PLOT_UPDATE_TIME_TICK_MS)
 
     @QtCore.pyqtSlot()
     def _toggle_gfr(self):
