@@ -9,7 +9,8 @@ from PyQt5 import QtWidgets
 from unittest.mock import MagicMock, patch, mock_open
 
 # Add project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, root_path)
 
 # Import after path setup
 from gui.window import GFRControlWindow

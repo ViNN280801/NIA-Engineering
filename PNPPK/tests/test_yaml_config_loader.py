@@ -10,7 +10,8 @@ import memory_profiler
 from unittest.mock import patch, mock_open
 
 # Add project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, root_path)
 
 from core.yaml_config_loader import (
     YAMLConfigLoader,
@@ -53,7 +54,7 @@ def valid_yaml_file():
     # Cleanup - remove the temporary file
     try:
         os.unlink(temp_name)
-    except:
+    except FileNotFoundError:
         pass
 
 
@@ -80,7 +81,7 @@ def invalid_yaml_file():
     # Cleanup - remove the temporary file
     try:
         os.unlink(temp_name)
-    except:
+    except FileNotFoundError:
         pass
 
 
@@ -103,7 +104,7 @@ def large_yaml_file():
     # Cleanup - remove the temporary file
     try:
         os.unlink(temp_name)
-    except:
+    except FileNotFoundError:
         pass
 
 

@@ -11,7 +11,24 @@ from PyQt5 import QtWidgets
 from unittest.mock import MagicMock
 
 # Add project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, root_path)
+
+# Default values for GFR controller
+DEFAULT_GFR_BAUDRATE = 38400
+DEFAULT_GFR_PARITY = "N"
+DEFAULT_GFR_DATA_BIT = 8
+DEFAULT_GFR_STOP_BIT = 1
+DEFAULT_GFR_SLAVE_ID = 1
+DEFAULT_GFR_TIMEOUT = 50
+
+# Default values for Relay controller
+DEFAULT_RELAY_BAUDRATE = 115200
+DEFAULT_RELAY_PARITY = "N"
+DEFAULT_RELAY_DATA_BIT = 8
+DEFAULT_RELAY_STOP_BIT = 1
+DEFAULT_RELAY_SLAVE_ID = 16
+DEFAULT_RELAY_TIMEOUT = 50
 
 
 def pytest_addoption(parser):
@@ -19,8 +36,17 @@ def pytest_addoption(parser):
         "--real-devices",
         action="store_true",
         default=False,
-        help="Запускать тесты, требующие реальных устройств",
+        help="Run tests that require real hardware devices. 1st COM port is for Relay, 2nd is for GFR",
     )
+
+    # Define individual COM port options
+    for i in range(1, 13):
+        parser.addoption(
+            f"--COM{i}",
+            action="store_true",
+            default=False,
+            help=f"Use COM{i} port for testing",
+        )
 
 
 def pytest_configure(config):
@@ -37,13 +63,123 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
+    if config.getoption("--real-devices"):
+        com_ports = []
+        for i in range(1, 13):
+            if config.getoption(f"--COM{i}"):
+                com_ports.append(f"COM{i}")
+
+        if len(com_ports) != 2:
+            pytest.exit(
+                f"Error: Tests require exactly 2 COM ports (specified: {len(com_ports)}). Example: --real-devices --COM3 --COM4"
+            )
+
+        if len(com_ports) != len(set(com_ports)):
+            pytest.exit(
+                f"Error: Duplicate COM ports specified: {com_ports}. Please specify two different ports."
+            )
+
     if not config.getoption("--real-devices"):
         skip_real_hardware = pytest.mark.skip(
-            reason="Нужны реальные устройства (запустите с --real-devices)"
+            reason="Real hardware devices required (run with --real-devices --COM<#> --COM<#>)"
         )
         for item in items:
             if "real_hardware" in item.keywords:
                 item.add_marker(skip_real_hardware)
+
+
+@pytest.fixture
+def real_com_ports(request):
+    """
+    Fixture for obtaining COM ports for tests with real devices.
+
+    Returns a tuple of two COM ports (for GFR and Relay respectively).
+    """
+    if not request.config.getoption("--real-devices"):
+        pytest.skip(
+            "Test requires real hardware devices (run with --real-devices --COM<#> --COM<#>)"
+        )
+
+    com_ports = []
+    for i in range(1, 13):
+        if request.config.getoption(f"--COM{i}"):
+            com_ports.append(f"COM{i}")
+
+    if len(com_ports) != 2:
+        pytest.skip(
+            f"Tests require exactly 2 COM ports (specified: {len(com_ports)}). Example: --real-devices --COM3 --COM4"
+        )
+
+    if len(com_ports) != len(set(com_ports)):
+        pytest.skip(
+            f"Duplicate COM ports specified: {com_ports}. Please specify two different ports."
+        )
+
+    return com_ports[0], com_ports[1]
+
+
+@pytest.fixture
+def gfr_config():
+    """
+    Fixture that loads GFR controller configuration parameters.
+    If config file exists, loads parameters from it, otherwise returns default values.
+    """
+    from core.yaml_config_loader import YAMLConfigLoader
+
+    config_loader = YAMLConfigLoader()
+    config_path = os.path.join(root_path, "config", "gfr.yaml")
+
+    if os.path.exists(config_path):
+        config_params = config_loader.load_config(config_path)
+        return {
+            "baudrate": config_params.get("baudrate", DEFAULT_GFR_BAUDRATE),
+            "parity": config_params.get("parity", DEFAULT_GFR_PARITY),
+            "data_bit": config_params.get("data_bit", DEFAULT_GFR_DATA_BIT),
+            "stop_bit": config_params.get("stop_bit", DEFAULT_GFR_STOP_BIT),
+            "slave_id": config_params.get("slave_id", DEFAULT_GFR_SLAVE_ID),
+            "timeout": config_params.get("timeout", DEFAULT_GFR_TIMEOUT),
+        }
+    else:
+        return {
+            "baudrate": DEFAULT_GFR_BAUDRATE,
+            "parity": DEFAULT_GFR_PARITY,
+            "data_bit": DEFAULT_GFR_DATA_BIT,
+            "stop_bit": DEFAULT_GFR_STOP_BIT,
+            "slave_id": DEFAULT_GFR_SLAVE_ID,
+            "timeout": DEFAULT_GFR_TIMEOUT,
+        }
+
+
+@pytest.fixture
+def relay_config():
+    """
+    Fixture that loads Relay controller configuration parameters.
+    If config file exists, loads parameters from it, otherwise returns default values.
+    """
+    from core.yaml_config_loader import YAMLConfigLoader
+
+    config_loader = YAMLConfigLoader()
+    config_path = os.path.join(root_path, "config", "relay.yaml")
+
+    if os.path.exists(config_path):
+        config_params = config_loader.load_config(config_path)
+        return {
+            "baudrate": config_params.get("baudrate", DEFAULT_RELAY_BAUDRATE),
+            "parity": config_params.get("parity", DEFAULT_RELAY_PARITY),
+            "data_bit": config_params.get("data_bit", DEFAULT_RELAY_DATA_BIT),
+            "stop_bit": config_params.get("stop_bit", DEFAULT_RELAY_STOP_BIT),
+            "slave_id": config_params.get("slave_id", DEFAULT_RELAY_SLAVE_ID),
+            "timeout": config_params.get("timeout", DEFAULT_RELAY_TIMEOUT),
+        }
+    else:
+        return {
+            "baudrate": DEFAULT_RELAY_BAUDRATE,
+            "parity": DEFAULT_RELAY_PARITY,
+            "data_bit": DEFAULT_RELAY_DATA_BIT,
+            "stop_bit": DEFAULT_RELAY_STOP_BIT,
+            "slave_id": DEFAULT_RELAY_SLAVE_ID,
+            "timeout": DEFAULT_RELAY_TIMEOUT,
+        }
 
 
 @pytest.fixture

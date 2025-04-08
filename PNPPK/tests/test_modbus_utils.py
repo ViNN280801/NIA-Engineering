@@ -5,7 +5,8 @@ import logging
 from unittest.mock import MagicMock
 
 # Add project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, root_path)
 
 from core.utils.modbus_utils import (
     MODBUS_OK,

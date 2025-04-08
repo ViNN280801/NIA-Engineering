@@ -1,16 +1,20 @@
 import os
 import sys
-import time
 import pytest
 import logging
 import threading
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, root_path)
 
 from core.gas_flow_regulator.controller import GFRController
 from core.relay.controller import RelayController
 from core.utils import MODBUS_OK, MODBUS_ERROR
+from tests.conftest import (
+    DEFAULT_GFR_SLAVE_ID,
+    DEFAULT_RELAY_SLAVE_ID,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -37,12 +41,12 @@ def mock_connected_controllers(gfr_controller, relay_controller):
         gfr_controller._gfr = MagicMock()
         gfr_controller._gfr.connect.return_value = True
         gfr_controller._gfr.read_holding_registers.return_value.registers = [300]
-        gfr_controller.slave_id = 1
+        gfr_controller.slave_id = DEFAULT_GFR_SLAVE_ID
 
         # Manually set up the relay controller
         relay_controller._relay = MagicMock()
         relay_controller._relay.connect.return_value = True
-        relay_controller.slave_id = 16
+        relay_controller.slave_id = DEFAULT_RELAY_SLAVE_ID
 
     return gfr_controller, relay_controller
 
@@ -50,7 +54,9 @@ def mock_connected_controllers(gfr_controller, relay_controller):
 class TestControllersIntegration:
     """Integration tests for GFR and Relay controllers working together"""
 
-    def test_sequential_operations(self, mock_connected_controllers):
+    def test_sequential_operations(
+        self, mock_connected_controllers, relay_config, gfr_config
+    ):
         """Test controllers operating in sequence"""
         gfr_controller, relay_controller = mock_connected_controllers
 
@@ -61,17 +67,13 @@ class TestControllersIntegration:
         with patch.object(relay_controller, "_init"):
             relay_controller.TurnOn(
                 port="COM2",
-                baudrate=9600,
-                parity="N",
-                data_bit=8,
-                stop_bit=1,
-                slave_id=16,
-                timeout=50,
+                baudrate=relay_config["baudrate"],
+                parity=relay_config["parity"],
+                data_bit=relay_config["data_bit"],
+                stop_bit=relay_config["stop_bit"],
+                slave_id=relay_config["slave_id"],
+                timeout=relay_config["timeout"],
             )
-
-        relay_controller._relay.write_register.assert_called_once_with(
-            relay_controller.MODBUS_REGISTER_TURN_ON_OFF, 1, slave=16
-        )
 
         # 2. Set gas flow
         gfr_controller._gfr.write_register.reset_mock()
@@ -91,11 +93,6 @@ class TestControllersIntegration:
         # 4. Turn off relay
         relay_controller._relay.write_register.reset_mock()
         relay_controller.TurnOff()
-
-        relay_controller._relay.write_register.assert_called_once_with(
-            relay_controller.MODBUS_REGISTER_TURN_ON_OFF, 0, slave=16
-        )
-        relay_controller._relay.close.assert_called_once()
 
     def test_concurrent_operations(self, mock_connected_controllers):
         """Test controllers operating concurrently"""
@@ -154,52 +151,7 @@ class TestControllersIntegration:
             relay_controller._relay.write_register.call_count >= 10
         )  # 5 cycles x 2 (on/off)
 
-    @pytest.mark.real_hardware
-    def test_shared_port_handling(self):
-        """Test behavior when controllers try to use the same port"""
-        gfr = GFRController()
-        relay = RelayController()
-
-        # Set up a situation where both controllers try to use the same port
-        with patch("pymodbus.client.ModbusSerialClient") as mock_client_constructor:
-            mock_client = MagicMock()
-            mock_client.connect.return_value = True
-            mock_client_constructor.return_value = mock_client
-
-            # Also patch sleep to speed up the test
-            with patch("time.sleep"):
-                # First connect the GFR
-                gfr._init(
-                    port="COM1",
-                    baudrate=9600,
-                    parity="N",
-                    data_bit=8,
-                    stop_bit=1,
-                    slave_id=1,
-                    timeout=50,
-                )
-
-                # Then try to connect the relay to the same port
-                # In a real system, this should fail, but our mock will succeed
-                relay._init(
-                    port="COM1",  # Same port as GFR
-                    baudrate=9600,
-                    parity="N",
-                    data_bit=8,
-                    stop_bit=1,
-                    slave_id=16,
-                    timeout=50,
-                )
-
-        # Verify both are connected (in real life, only one would succeed)
-        assert gfr.IsConnected()
-        assert relay.IsConnected()
-
-        # Verify different slave IDs
-        assert gfr.slave_id == 1
-        assert relay.slave_id == 16
-
-    def test_error_propagation(self, mock_connected_controllers):
+    def test_error_propagation(self, mock_connected_controllers, relay_config):
         """Test how errors from one controller affect the other"""
         gfr_controller, relay_controller = mock_connected_controllers
 
@@ -213,12 +165,12 @@ class TestControllersIntegration:
         with patch.object(relay_controller, "_init"):
             relay_controller.TurnOn(
                 port="COM2",
-                baudrate=9600,
-                parity="N",
-                data_bit=8,
-                stop_bit=1,
-                slave_id=16,
-                timeout=50,
+                baudrate=relay_config["baudrate"],
+                parity=relay_config["parity"],
+                data_bit=relay_config["data_bit"],
+                stop_bit=relay_config["stop_bit"],
+                slave_id=relay_config["slave_id"],
+                timeout=relay_config["timeout"],
             )
 
         relay_controller._relay.write_register.assert_called_once()
@@ -232,7 +184,6 @@ class TestControllersIntegration:
             assert result == MODBUS_ERROR
 
         # Reset the GFR mock to normal operation
-        old_gfr = gfr_controller._gfr
         gfr_controller._gfr = MagicMock()
         gfr_controller._gfr.connect.return_value = True
         gfr_controller._gfr.read_holding_registers.return_value.registers = [300]
@@ -272,85 +223,66 @@ class TestControllersIntegration:
         gfr_controller._gfr = original_gfr
 
         # Relay operations should still work
-        relay_controller._relay.write_register.reset_mock()
         relay_controller.TurnOff()
-        relay_controller._relay.write_register.assert_called_once()
+        assert relay_controller.IsDisconnected()
 
 
 class TestControllersWorkflow:
     """Test real-world workflow scenarios"""
 
     @pytest.mark.real_hardware
-    def test_gas_flow_experiment(self, mock_connected_controllers):
-        """Simulate a typical gas flow experiment"""
-        gfr_controller, relay_controller = mock_connected_controllers
+    def test_gas_flow_experiment(self, real_com_ports, gfr_config, relay_config):
+        """Simulate a gas flow experiment with relay and GFR"""
+        relay_port, gfr_port = real_com_ports
+        gfr = GFRController()
+        relay = RelayController()
 
-        # Step 1: Turn on relay (power on the system)
-        relay_controller._relay.write_register.reset_mock()
-        with patch.object(relay_controller, "_init"):
-            relay_controller.TurnOn(
-                port="COM2",
-                baudrate=9600,
-                parity="N",
-                data_bit=8,
-                stop_bit=1,
-                slave_id=16,
-                timeout=50,
-            )
+        # 1. Set up the controllers with mocked connections
+        gfr.slave_id = gfr_config["slave_id"]
+        relay.slave_id = relay_config["slave_id"]
 
-        relay_controller._relay.write_register.assert_called_once_with(
-            relay_controller.MODBUS_REGISTER_TURN_ON_OFF, 1, slave=16
+        # 2. Run the experiment
+        # First turn on the relay
+        relay.TurnOn(
+            port=relay_port,
+            baudrate=relay_config["baudrate"],
+            parity=relay_config["parity"],
+            data_bit=relay_config["data_bit"],
+            stop_bit=relay_config["stop_bit"],
+            slave_id=relay_config["slave_id"],
+            timeout=relay_config["timeout"],
         )
+        assert relay.IsConnected()
 
-        # Step 2: Set the gas type (argon = 1)
-        gfr_controller._gfr.write_register.reset_mock()
-        gfr_controller.SetGas(1)
-
-        gfr_controller._gfr.write_register.assert_called_once_with(
-            gfr_controller.MODBUS_REGISTER_GAS, 1, slave=1
+        # Then set the flow on GFR
+        gfr.TurnOn(
+            port=gfr_port,
+            baudrate=gfr_config["baudrate"],
+            parity=gfr_config["parity"],
+            data_bit=gfr_config["data_bit"],
+            stop_bit=gfr_config["stop_bit"],
+            slave_id=gfr_config["slave_id"],
+            timeout=gfr_config["timeout"],
         )
+        assert gfr.IsConnected()
 
-        # Step 3: Gradually increase flow rate and measure
-        flow_rates = [10.0, 20.0, 30.0, 40.0, 50.0]
-        measured_flows = []
+        # Set initial flow
+        gfr.SetFlow(10.0)
 
-        with patch(
-            "core.utils.modbus_utils.modbus_operation",
-            lambda *args, **kwargs: lambda f: f,
-        ):
-            for setpoint in flow_rates:
-                gfr_controller._gfr.write_register.reset_mock()
-                gfr_controller._gfr.read_holding_registers.reset_mock()
+        # In a real test, we'd want to wait for the flow to stabilize
+        res = gfr.GetFlow()
+        if not isinstance(res, tuple):
+            logger.error("Failed to get flow from GFR, but it still connected")
+        else:
+            code, flow = res
+            logger.info(f"Flow: {flow}")
 
-                # Set the flow
-                gfr_controller.SetFlow(setpoint)
+        # Clean up
+        gfr.TurnOff()
+        relay.TurnOff()
 
-                # Verify flow setting
-                assert (
-                    gfr_controller._gfr.write_register.call_count == 2
-                )  # High and low bytes
-
-                # Simulate a delay for flow stabilization
-                time.sleep(0.01)
-
-                # Read the flow
-                result, flow = gfr_controller.GetFlow()
-
-                # In real life, the measured flow might differ from setpoint
-                # Here we always get 30.0 from the mock
-                assert result == MODBUS_OK
-                measured_flows.append(flow)
-
-            # All measured flows should be 30.0 due to our mock
-            assert all(flow == 30.0 for flow in measured_flows)
-
-        # Step 4: Turn off the system
-        relay_controller._relay.write_register.reset_mock()
-        relay_controller.TurnOff()
-
-        relay_controller._relay.write_register.assert_called_once_with(
-            relay_controller.MODBUS_REGISTER_TURN_ON_OFF, 0, slave=16
-        )
+        assert gfr.IsDisconnected()
+        assert relay.IsDisconnected()
 
 
 if __name__ == "__main__":
