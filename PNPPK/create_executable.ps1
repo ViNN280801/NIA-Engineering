@@ -35,7 +35,6 @@ python -m PyInstaller --noconfirm `
 					  --clean `
 				      --log-level "INFO" `
 					  --name $APP_NAME `
-					  --add-data ".;.\" `
 					  --add-data "config;config\" `
 					  --add-binary "$CONDA_DLL_PATH\libexpat.dll;." `
                       --add-binary "$CONDA_DLL_PATH\LIBBZ2.dll;." `
@@ -46,3 +45,15 @@ python -m PyInstaller --noconfirm `
 # Removing build directory and writing message
 Remove-Item -Recurse -Force $BUILD_DIR
 Write-Host "Build completed. Executable is in $DIST_DIR\$APP_NAME"
+
+# Create drivers directory in the output folder
+$DRIVERS_DIR = "$DIST_DIR\$APP_NAME\drivers"
+Write-Host "Creating drivers directory..."
+New-Item -Path $DRIVERS_DIR -ItemType Directory -Force
+
+# Extract zip file contents into drivers directory
+$ZIP_FILE = ".\adapter-espada-usbrs-485_drajver.zip"
+Write-Host "Extracting driver files from $ZIP_FILE..."
+Expand-Archive -Path $ZIP_FILE -DestinationPath $DRIVERS_DIR -Force
+
+Write-Host "Driver files copied to $DRIVERS_DIR"
