@@ -72,6 +72,7 @@ class RelayController:
     @modbus_operation("РЕЛЕ: Закрытие соединения с устройством", "self._relay")
     def _close(self):
         self._relay.close()  # type: ignore[checking on None in wrapper]
+        self._relay = None
 
     @modbus_operation("РЕЛЕ: Установка Slave", "self._relay", skip_device_check=True)
     def _set_slave(self, slave_id):
@@ -85,7 +86,7 @@ class RelayController:
     @modbus_operation("РЕЛЕ: Выключение", "self._relay")
     def TurnOff(self):
         self._relay.write_register(self.MODBUS_REGISTER_TURN_ON_OFF, 0, slave=self.slave_id)  # type: ignore[checking on None in wrapper]
-        self._relay.close()  # type: ignore[checking on None in wrapper]
+        self._close()
 
     def IsConnected(self) -> bool:
         return self._relay is not None

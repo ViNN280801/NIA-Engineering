@@ -75,6 +75,7 @@ class GFRController:
     @modbus_operation("РРГ: Закрытие соединения с устройством", "self._gfr")
     def _close(self):
         self._gfr.close()  # type: ignore[checking on None in wrapper]
+        self._gfr = None
 
     @modbus_operation("РРГ: Установка Slave", "self._gfr", skip_device_check=True)
     def _set_slave(self, slave_id):
