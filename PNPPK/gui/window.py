@@ -824,7 +824,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.warning(
                 self,
                 "Нет данных",
-                "Нет данных для сохранения. Запустите измерения сначала.",
+                "Нет данных для сохранения. Сначала запустите измерения.",
                 QMessageBox.Ok,
             )
             return
@@ -860,7 +860,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.warning(
                 self,
                 "Нет данных",
-                "Нет данных для сохранения графика. Запустите измерения сначала.",
+                "Нет данных для сохранения графика. Сначала запустите измерения.",
                 QMessageBox.Ok,
             )
             return
