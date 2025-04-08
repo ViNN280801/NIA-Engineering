@@ -291,7 +291,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         self.ax.set_xlabel("Время [мин]")
         self.ax.set_ylabel("Расход [см3/мин]")
-        self.ax.set_title("Расход газа по времени Qm(t)")
+        self.ax.set_title("Расход газа по времени Q(t)")
 
         self.flow_data = []  # Stores (time in minutes, flow)
         self.start_time = datetime.datetime.now()  # Set start time for reference
@@ -355,7 +355,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         self.ax.set_xlabel("Время [мин]")
         self.ax.set_ylabel("Расход [см3/мин]")
-        self.ax.set_title("Расход газа по времени Qm(t)")
+        self.ax.set_title("Расход газа по времени Q(t)")
 
         # Automatic scaling of axes
         if len(times) > 1:
@@ -814,7 +814,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.ax.clear()
         self.ax.set_xlabel("Время [мин]")
         self.ax.set_ylabel("Расход [см3/мин]")
-        self.ax.set_title("Расход газа по времени Qm(t)")
+        self.ax.set_title("Расход газа по времени Q(t)")
         self.ax.grid(True)
         self.canvas.draw()
         self._log_message("График очищен. Начинаем новые измерения.")
@@ -878,7 +878,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             ax.plot(times, flows, marker="o", linestyle="-")
             ax.set_xlabel("Время [мин]")
             ax.set_ylabel("Расход [см3/мин]")
-            ax.set_title("Расход газа по времени Qm(t)")
+            ax.set_title("Расход газа по времени Q(t)")
 
             ax.minorticks_on()
             ax.grid(True, which="major", linestyle="-", linewidth=0.8)
