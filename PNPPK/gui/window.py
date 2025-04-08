@@ -529,30 +529,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 "slave_id", GFR_DEFAULT_SLAVE_ID
             )
             self.gfr_timeout = self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT)
-
-            self._log_message(
-                f"Конфигурация загружена успешно из файлов: [{relay_config_path}; {gfr_config_path}]. Параметры конфигурации:"
-            )
-            self._log_message(
-                "Реле:\n"
-                f"Port: {relay_port}\n"
-                f"Baudrate: {self.relay_baudrate} [бит/с]\n"
-                f"Parity: {self.relay_parity}\n"
-                f"Data bit: {self.relay_data_bit}\n"
-                f"Stop bit: {self.relay_stop_bit}\n"
-                f"Slave ID: {self.relay_slave_id}\n"
-                f"Timeout: {self.relay_timeout} [мс]"
-            )
-            self._log_message(
-                "\nРРГ (Регулятор расхода газа):\n"
-                f"Port: {gfr_port}\n"
-                f"Baudrate: {self.gfr_baudrate} [бит/с]\n"
-                f"Parity: {self.gfr_parity}\n"
-                f"Data bit: {self.gfr_data_bit}\n"
-                f"Stop bit: {self.gfr_stop_bit}\n"
-                f"Slave ID: {self.gfr_slave_id}\n"
-                f"Timeout: {self.gfr_timeout} [мс]"
-            )
         except Exception as e:
             self._log_message(f"Не удалось загрузить конфигурацию: {e}")
 
@@ -763,9 +739,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             return
 
         try:
+            text = text.replace(",", ".")
             setpoint = float(text)
         except ValueError:
-            self._log_message("Неверное значение заданного расхода.")
+            self._log_message(
+                f"Неверное значение заданного расхода, введенное значение: {text} [см3/мин]."
+            )
             return
 
         if self.gfr_controller.IsDisconnected():
