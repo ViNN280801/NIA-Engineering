@@ -358,7 +358,16 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.critical(
                 self,
                 "Ошибка",
-                "Не удалось подключить реле. Пожалуйста, проверьте соединения проводов и повторите попытку.",
+                "Не удалось подключить реле. "
+                + "Пожалуйста, проверьте соединения проводов и повторите попытку. "
+                "Параметры подключения:\n"
+                f"Port: {relay_port}\n"
+                f"Baudrate: {self.relay_baudrate} [бит/с]\n"
+                f"Parity: {self.relay_parity}\n"
+                f"Data bit: {self.relay_data_bit}\n"
+                f"Stop bit: {self.relay_stop_bit}\n"
+                f"Slave ID: {self.relay_slave_id}\n"
+                f"Timeout: {self.relay_timeout} [мс]",
             )
             return
         else:
@@ -400,7 +409,16 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.critical(
                 self,
                 "Ошибка",
-                "Не удалось подключить РРГ. Пожалуйста, проверьте соединения проводов и повторите попытку.",
+                "Не удалось подключить РРГ. "
+                + "Пожалуйста, проверьте соединения проводов и повторите попытку. "
+                "Параметры подключения:\n"
+                f"Port: {gfr_port}\n"
+                f"Baudrate: {self.gfr_baudrate} [бит/с]\n"
+                f"Parity: {self.gfr_parity}\n"
+                f"Data bit: {self.gfr_data_bit}\n"
+                f"Stop bit: {self.gfr_stop_bit}\n"
+                f"Slave ID: {self.gfr_slave_id}\n"
+                f"Timeout: {self.gfr_timeout} [мс]",
             )
             self.toggle_gfr_button.setChecked(False)
             self.toggle_gfr_button.setText("Включить РРГ")
@@ -459,12 +477,14 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._update_plot_visualization()
 
     def _load_config_data(self):
-        gfr_config_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "config", "gfr.yaml"
-        )
         relay_config_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "config", "relay.yaml"
         )
+        gfr_config_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "config", "gfr.yaml"
+        )
+        relay_port = self.combo_port_1.currentText()
+        gfr_port = self.combo_port_2.currentText()
         try:
             self.gfr_config_dict = self.config_loader.load_config(gfr_config_path)
             self.relay_config_dict = self.config_loader.load_config(relay_config_path)
@@ -504,23 +524,27 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.gfr_timeout = self.gfr_config_dict.get("timeout", GFR_DEFAULT_TIMEOUT)
 
             self._log_message(
-                f"Конфигурация загружена успешно из файлов: [{gfr_config_path}; {relay_config_path}]. Параметры конфигурации:"
+                f"Конфигурация загружена успешно из файлов: [{relay_config_path}; {gfr_config_path}]. Параметры конфигурации:"
             )
             self._log_message(
-                f"РРГ:\nBaudrate: {self.gfr_baudrate} [бит/с]\n"
-                f"Parity: {self.gfr_parity}\n"
-                f"Data bit: {self.gfr_data_bit}\n"
-                f"Stop bit: {self.gfr_stop_bit}\n"
-                f"Slave ID: {self.gfr_slave_id}\n"
-                f"Timeout: {self.gfr_timeout} [мс]"
-            )
-            self._log_message(
-                f"\nРеле:\nBaudrate: {self.relay_baudrate} [бит/с]\n"
+                "Реле:\n"
+                f"Port: {relay_port}\n"
+                f"Baudrate: {self.relay_baudrate} [бит/с]\n"
                 f"Parity: {self.relay_parity}\n"
                 f"Data bit: {self.relay_data_bit}\n"
                 f"Stop bit: {self.relay_stop_bit}\n"
                 f"Slave ID: {self.relay_slave_id}\n"
                 f"Timeout: {self.relay_timeout} [мс]"
+            )
+            self._log_message(
+                "\nРРГ (Регулятор расхода газа):\n"
+                f"Port: {gfr_port}\n"
+                f"Baudrate: {self.gfr_baudrate} [бит/с]\n"
+                f"Parity: {self.gfr_parity}\n"
+                f"Data bit: {self.gfr_data_bit}\n"
+                f"Stop bit: {self.gfr_stop_bit}\n"
+                f"Slave ID: {self.gfr_slave_id}\n"
+                f"Timeout: {self.gfr_timeout} [мс]"
             )
         except Exception as e:
             self._log_message(f"Не удалось загрузить конфигурацию: {e}")
