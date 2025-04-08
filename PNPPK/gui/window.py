@@ -51,6 +51,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.available_ports: list[str] = self._get_available_ports()
         self.previous_port_count = len(self.available_ports)
 
+        # Add tracking for the last successful measurement time
+        self.last_measurement_time = datetime.datetime.now()
+        self.measurement_stalled = False
+
         self._create_toolbar()
         self._create_central_widget()
 
@@ -70,6 +74,11 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         # Check every 2 seconds (2000 ms) - not too often to avoid performance impact
         self.connection_check_timer.start(2000)
+
+        # Create a timer for detecting stalled measurements
+        self.stall_check_timer = QtCore.QTimer(self)
+        self.stall_check_timer.timeout.connect(self._check_measurement_stall)
+        self.stall_check_timer.start(5000)  # Check every 5 seconds
 
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
@@ -98,11 +107,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         1. Physical disconnection of devices
         2. Changes in the number of available COM ports
         """
-        # Only perform checks if devices are supposed to be connected
-        if not self.toggle_gfr_button.isChecked():
-            return
-
-        # Check if the number of available ports has changed
+        # Always check if the number of available ports has changed
         current_ports = self._get_available_ports()
         current_port_count = len(current_ports)
 
@@ -117,21 +122,25 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         # Update the previous count
         self.previous_port_count = current_port_count
 
-        # Check for device responsiveness (light ping)
-        if self.gfr_controller.IsConnected():
-            try:
-                # Use a simple operation to check if device is still responsive
-                # This is more efficient than a full data read
-                self._check_gfr_connectivity()
-            except Exception as e:
-                self._handle_device_disconnection(f"Потеряна связь с РРГ: {str(e)}")
+        # Only check device responsiveness if they are connected
+        if self.toggle_gfr_button.isChecked():
+            # Check for device responsiveness (light ping)
+            if self.gfr_controller.IsConnected():
+                try:
+                    # Use a simple operation to check if device is still responsive
+                    # This is more efficient than a full data read
+                    self._check_gfr_connectivity()
+                except Exception as e:
+                    self._handle_device_disconnection(f"Потеряна связь с РРГ: {str(e)}")
 
-        if self.relay_controller.IsConnected():
-            try:
-                # Use a simple operation to check if device is still responsive
-                self._check_relay_connectivity()
-            except Exception as e:
-                self._handle_device_disconnection(f"Потеряна связь с реле: {str(e)}")
+            if self.relay_controller.IsConnected():
+                try:
+                    # Use a simple operation to check if device is still responsive
+                    self._check_relay_connectivity()
+                except Exception as e:
+                    self._handle_device_disconnection(
+                        f"Потеряна связь с реле: {str(e)}"
+                    )
 
     def _check_gfr_connectivity(self):
         """
@@ -173,13 +182,17 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.setText("Включить РРГ")
 
         # 4. Refresh the available ports
-        self._refresh_ports()
+        self._refresh_ports(show_message=False)
 
         # 5. Show a message to the user
         QMessageBox.critical(
             self,
             "Ошибка подключения",
-            f"{message}\n\nСписок портов обновлен. Пожалуйста, проверьте подключения и попробуйте снова.",
+            f"{message}\n\nПопробуйте:\n"
+            + "- Перезапустить программу;\n"
+            + "- переподключить адаптер к другим COM-портам;\n"
+            + "- проверить соединения на предмет механических повреждений;\n"
+            + "- обновить драйвер (в папке drivers -> CH341SER.EXE).",
             QMessageBox.Ok,
         )
 
@@ -188,22 +201,11 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         Queries the current flow from the GFR controller, appends the data point,
         and updates the Matplotlib graph.
         """
-        # If the GFR is disconnected or in the process of disconnection, add a zero value
+        # If the GFR is disconnected or in the process of disconnection, return without adding data
         if (
             self.gfr_controller.IsDisconnected()
             or not self.toggle_gfr_button.isChecked()
         ):
-            current_time = datetime.datetime.now()
-            elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
-
-            # Add zero value to show that the device is disconnected
-            if self.flow_data and len(self.flow_data) > 0:
-                # Add only if this is the first point after disconnection,
-                # to avoid accumulating multiple zero points
-                last_point = self.flow_data[-1]
-                if last_point[1] != 0:
-                    self.flow_data.append((elapsed_minutes, 0))
-                    self._update_plot_visualization()
             return
 
         try:
@@ -224,24 +226,18 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         ).total_seconds() / 60  # Convert to minutes
 
         if err == MODBUS_OK:
-            # If the last point was zero and we got new data,
-            # it means the device just turned on
-            if (
-                self.flow_data
-                and len(self.flow_data) > 0
-                and self.flow_data[-1][1] == 0
-            ):
-                # Check if an additional zero point was already added
-                # when the device was turned on in the _open_connections method
-                if len(self.flow_data) > 1 and self.flow_data[-2][1] == 0:
-                    # If there was a long break between points, add another zero point
-                    # directly before the current moment
-                    time_diff = elapsed_minutes - self.flow_data[-1][0]
-                    if time_diff > 0.05:  # Если прошло более 3 секунд
-                        self.flow_data.append((elapsed_minutes - 0.001, 0))
+            # The zero point is only added when the device is intentionally
+            # turned on in _open_connections method, so we don't need to check for
+            # previous zero values here anymore
 
             self.flow_data.append((elapsed_minutes, flow))
             self._update_plot_visualization()
+
+            # Update the last successful measurement time
+            self.last_measurement_time = current_time
+            # Reset the stalled flag if it was set
+            if self.measurement_stalled:
+                self.measurement_stalled = False
 
             global PLOT_MEASUREMENT_COUNTER
             PLOT_MEASUREMENT_COUNTER += 1
@@ -301,11 +297,61 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.start_time = datetime.datetime.now()  # Set start time for reference
 
     def _update_plot_visualization(self):
+        if not self.flow_data:
+            return
+
         times = [t for t, _ in self.flow_data]
         flows = [f for _, f in self.flow_data]
 
         self.ax.clear()
-        self.ax.plot(times, flows, marker="o", linestyle="-")
+
+        if len(times) <= 1:
+            # If there's only one point, plot it normally
+            self.ax.plot(times, flows, marker="o", linestyle="-", markersize=1)
+        else:
+            # Find significant time gaps and create separate plot segments
+            segments_times = []
+            segments_flows = []
+
+            # Start the first segment
+            current_segment_times = [times[0]]
+            current_segment_flows = [flows[0]]
+
+            # Define what constitutes a "gap" - 0.05 minutes is about 3 seconds
+            GAP_THRESHOLD = 0.05
+
+            # Split data into segments based on time gaps
+            for i in range(1, len(times)):
+                time_gap = times[i] - times[i - 1]
+
+                if time_gap > GAP_THRESHOLD:
+                    # Save the current segment if it has points
+                    if current_segment_times:
+                        segments_times.append(current_segment_times)
+                        segments_flows.append(current_segment_flows)
+
+                    # Start a new segment
+                    current_segment_times = [times[i]]
+                    current_segment_flows = [flows[i]]
+                else:
+                    # Continue the current segment
+                    current_segment_times.append(times[i])
+                    current_segment_flows.append(flows[i])
+
+            # Add the last segment
+            if current_segment_times:
+                segments_times.append(current_segment_times)
+                segments_flows.append(current_segment_flows)
+
+            # Plot each segment separately
+            for i in range(len(segments_times)):
+                self.ax.plot(
+                    segments_times[i],
+                    segments_flows[i],
+                    marker="o",
+                    linestyle="-",
+                    markersize=1,
+                )
 
         self.ax.set_xlabel("Время [мин]")
         self.ax.set_ylabel("Расход [см3/мин]")
@@ -359,21 +405,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             timeout=self.relay_timeout,
         )
         if relay_err != MODBUS_OK:
-            self._relay_show_error_msg()
-            QMessageBox.critical(
-                self,
-                "Ошибка",
-                "Не удалось подключить реле. "
-                + "Пожалуйста, проверьте соединения проводов и повторите попытку. "
-                "Параметры подключения:\n"
-                f"Port: {relay_port}\n"
-                f"Baudrate: {self.relay_baudrate} [бит/с]\n"
-                f"Parity: {self.relay_parity}\n"
-                f"Data bit: {self.relay_data_bit}\n"
-                f"Stop bit: {self.relay_stop_bit}\n"
-                f"Slave ID: {self.relay_slave_id}\n"
-                f"Timeout: {self.relay_timeout} [мс]",
-            )
             return
         else:
             self._log_message(f"Реле подключено к порту {relay_port}.")
@@ -388,17 +419,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             )
             return
 
-        # Add a zero point in the moment of inclusion
-        # to see the "step" of inclusion on the graph
-        current_time = datetime.datetime.now()
-        elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
-
-        # Check if the device was turned off before this (is there a zero point at the end of the graph)
-        if self.flow_data and len(self.flow_data) > 0 and self.flow_data[-1][1] == 0:
-            # Add a point with the same moment in time, but with a zero value
-            # to create a "step" of inclusion
-            self.flow_data.append((elapsed_minutes, 0))
-            self._update_plot_visualization()
+        # No need to add a zero point - we want the graph to start with the first actual measurement
 
         gfr_err = self.gfr_controller.TurnOn(
             gfr_port,
@@ -411,20 +432,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         )
         if gfr_err != MODBUS_OK:
             self._gfr_show_error_msg()
-            QMessageBox.critical(
-                self,
-                "Ошибка",
-                "Не удалось подключить РРГ. "
-                + "Пожалуйста, проверьте соединения проводов и повторите попытку. "
-                "Параметры подключения:\n"
-                f"Port: {gfr_port}\n"
-                f"Baudrate: {self.gfr_baudrate} [бит/с]\n"
-                f"Parity: {self.gfr_parity}\n"
-                f"Data bit: {self.gfr_data_bit}\n"
-                f"Stop bit: {self.gfr_stop_bit}\n"
-                f"Slave ID: {self.gfr_slave_id}\n"
-                f"Timeout: {self.gfr_timeout} [мс]",
-            )
             self.toggle_gfr_button.setChecked(False)
             self.toggle_gfr_button.setText("Включить РРГ")
         else:
@@ -477,11 +484,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             else:
                 self._log_message("Реле отключено.")
 
-        current_time = datetime.datetime.now()
-        elapsed_minutes = (current_time - self.start_time).total_seconds() / 60
-        if self.flow_data and len(self.flow_data) > 0:
-            self.flow_data.append((elapsed_minutes, 0))
-            self._update_plot_visualization()
+        # We want a gap in the graph instead of zero values when disconnected
+        # Don't add any point, just update the visualization
+        self._update_plot_visualization()
 
     def _load_config_data(self):
         relay_config_path = os.path.join(
@@ -559,7 +564,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.combo_port_1.setToolTip(
             "Выберите COM-порт для реле. Чтобы не перепутать COM-порты, "
             "Вы можете посмотреть в мененджер устройств, для этого наберите "
-            'в поиске "Менеджер устройств" -> "COM-порты". Там Вы увидите '
+            'в поиске "Диспетчер устройств" (в англ. версии - "Device Manager") -> "COM-порты". Там Вы увидите '
             "все устройства и их COM-порты."
         )
         self.toolbar.addWidget(self.combo_port_1)
@@ -570,7 +575,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.combo_port_2.setToolTip(
             "Выберите COM-порт для РРГ. Чтобы не перепутать COM-порты, "
             "Вы можете посмотреть в мененджер устройств, для этого наберите "
-            'в поиске "Менеджер устройств" -> "COM-порты". Там Вы увидите '
+            'в поиске "Диспетчер устройств" (в англ. версии - "Device Manager") -> "COM-порты". Там Вы увидите '
             "все устройства и их COM-порты."
         )
         self.toolbar.addWidget(self.combo_port_2)
@@ -580,14 +585,16 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             "Данная кнопка обновляет список доступных портов"
         )
         self.toolbar.addWidget(self.refresh_ports_button)
-        self.refresh_ports_button.clicked.connect(self._refresh_ports)
+        self.refresh_ports_button.clicked.connect(
+            lambda: self._refresh_ports(show_message=True)
+        )
 
         self._update_combo_boxes(initial=True)
 
         self.combo_port_1.currentIndexChanged.connect(self._on_combo_changed)
         self.combo_port_2.currentIndexChanged.connect(self._on_combo_changed)
 
-    def _refresh_ports(self):
+    def _refresh_ports(self, show_message=True):
         self.available_ports: list[str] = self._get_available_ports()
         self._update_combo_boxes(initial=True)
         self._toggle_ui()
@@ -602,14 +609,15 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             )
             return
 
-        QMessageBox.information(
-            self,
-            "Обновление портов",
-            "Список портов обновлен успешно, доступные порты: "
-            + ", ".join(self.available_ports),
-            QMessageBox.Ok,
-            QMessageBox.Ok,
-        )
+        if show_message:
+            QMessageBox.information(
+                self,
+                "Обновление портов",
+                "Список портов обновлен успешно, доступные порты: "
+                + ", ".join(self.available_ports),
+                QMessageBox.Ok,
+                QMessageBox.Ok,
+            )
 
     def _update_combo_boxes(self, initial=False):
         current1 = self.combo_port_1.currentText()
@@ -755,7 +763,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if err != MODBUS_OK:
             self._gfr_show_error_msg()
         else:
-            self._log_message(f"Заданный расход {setpoint} отправлен успешно.")
+            self._log_message(
+                f"Заданный расход {setpoint} [см3/мин] отправлен успешно."
+            )
 
     def _log_message(self, message: str):
         self.log_console.append(message)
@@ -893,3 +903,45 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 QMessageBox.Ok,
             )
             self._log_message(f"Ошибка сохранения графика: {str(e)}")
+
+    def _check_measurement_stall(self):
+        """
+        Checks if measurements have stopped coming in while the GFR is connected.
+        If measurements have stalled for a significant time, alerts the user.
+        """
+        # Only check if GFR is supposedly connected and we haven't already detected a stall
+        if (
+            self.gfr_controller.IsConnected()
+            and self.toggle_gfr_button.isChecked()
+            and not self.measurement_stalled
+        ):
+
+            current_time = datetime.datetime.now()
+            # Calculate seconds since last measurement
+            time_since_last_measurement = (
+                current_time - self.last_measurement_time
+            ).total_seconds()
+
+            # If more than 10 seconds have passed without a measurement, consider it stalled
+            if time_since_last_measurement > 10:
+                self.measurement_stalled = True
+                self._show_stall_message()
+
+    def _show_stall_message(self):
+        """
+        Shows a message to the user when measurements have stalled.
+        """
+        self._log_message(
+            "ВНИМАНИЕ: Измерения прекратились, возможно, соединение с РРГ потеряно."
+        )
+
+        QMessageBox.warning(
+            self,
+            "Измерения прекратились",
+            "Программа перестала получать данные от РРГ, хотя соединение считается активным.\n\n"
+            "Рекомендуется:\n"
+            "- Перезапустить программу;\n"
+            "- проверить физическое подключение устройства;\n"
+            "- убедиться, что устройство включено и функционирует.",
+            QMessageBox.Ok,
+        )
