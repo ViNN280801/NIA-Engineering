@@ -14,6 +14,12 @@ log/
 results/
 *.csv
 
+# Executive files
+AppImage
+*.out
+*.exe
+*.EXE
+
 # Any build files
 build/
 
