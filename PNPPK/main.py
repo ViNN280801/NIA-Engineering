@@ -4,8 +4,8 @@
 import os
 import sys
 import signal
-import traceback
 import datetime
+import traceback
 from PyQt5 import QtWidgets
 from gui.window import GFRControlWindow
 
@@ -96,21 +96,16 @@ def main():
 if __name__ == "__main__":
     _check_qt_plugin_path()
 
-    # Check if running with administrative privileges
-    if not is_admin():
-        print("Administrative privileges required. Elevating...")
-        elevate_privileges()
-    else:
-        try:
-            main()
-        except Exception:
-            # Generate a log filename with the current date and time.
-            now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            log_filename = f"crash-log-{now}.log"
-            with open(log_filename, "w") as log_file:
-                traceback.print_exc(file=log_file)
+    try:
+        main()
+    except Exception:
+        # Generate a log filename with the current date and time.
+        now = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_filename = f"crash-log-{now}.log"
+        with open(log_filename, "w") as log_file:
+            traceback.print_exc(file=log_file)
 
-            global window
-            window._safe_close_connections()
+        global window
+        window._safe_close_connections()
 
-            sys.exit(1)
+        sys.exit(1)

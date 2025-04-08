@@ -32,6 +32,11 @@ GFR_DEFAULT_STOP_BIT = 1
 PLOT_UPDATE_TIME_TICK_MS = 200
 PLOT_MEASUREMENT_COUNTER = 0
 
+HELP_MESSAGE = (
+    "Если долго нет подключения к какому-либо из устройств, "
+    + "попробуйте перезапустить программу или поменять подключения к другим COM-портам."
+)
+
 
 class GFRControlWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -147,7 +152,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if self.relay_controller._relay is not None:
             if not self.relay_controller._relay.connected:
                 raise Exception(
-                    "Соединение с реле потеряно, проверьте подключение (порт, скорость, биты)"
+                    f"Соединение с реле потеряно, проверьте подключение (порт, скорость, биты). {HELP_MESSAGE}"
                 )
 
     def _handle_device_disconnection(self, message):
@@ -206,10 +211,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
             # If we get here, we can consider this a successful connectivity check
             self._check_gfr_connectivity()
-        except Exception as e:
+        except Exception:
             # Handle the disconnection case more gracefully
             self._handle_device_disconnection(
-                f"Не удалось получить данные расхода: {str(e)}"
+                f"Не удалось получить данные расхода, проверьте подключение к РРГ. {HELP_MESSAGE}"
             )
             return
 
@@ -442,8 +447,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                     self.flow_data.append((elapsed_minutes, flow))
                     self._update_plot_visualization()
                     self._log_message(f"Расход после включения: {flow} [см3/мин]")
-            except Exception as e:
-                self._log_message(f"Ошибка при обновлении графика после включения: {e}")
+            except Exception:
+                self._log_message(
+                    f"Ошибка при обновлении графика после включения, проверьте подключение к РРГ. {HELP_MESSAGE}"
+                )
 
     def _close_connections(self):
         """
