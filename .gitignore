@@ -20,6 +20,9 @@ AppImage
 *.exe
 *.EXE
 
+# Config for ports in ПНППК
+PNPPK/config/ports.yaml
+
 # Any build files
 build/
 
