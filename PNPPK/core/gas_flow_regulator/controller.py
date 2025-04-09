@@ -2,6 +2,7 @@ import io
 import sys
 from time import sleep
 from typing import Optional
+from struct import pack, unpack
 from pymodbus.client import ModbusSerialClient
 from core.utils import modbus_operation, get_last_error, MODBUS_OK, MODBUS_ERROR
 
@@ -63,13 +64,6 @@ class GFRController:
         error_message = (
             f"Не удалось подключиться к РРГ после {connect_attempts} попыток"
         )
-        if original_error_message:
-            error_message += (
-                f". Оригинальное сообщение об ошибке, полученное от MODBUS: {original_error_message}. "
-                + 'Перепроверьте провода или соответствие номеров портов, или переустановите драйвер ["CH341SER.EXE"]. '
-                + "Он находится в папке drivers."
-            )
-
         raise Exception(error_message)
 
     @modbus_operation("РРГ: Закрытие соединения с устройством", "self._gfr")
@@ -88,6 +82,71 @@ class GFRController:
     @modbus_operation("РРГ: Выключение", "self._gfr")
     def TurnOff(self):
         self._close()
+
+    # Explanation for GetFlow and SetFlow conversions:
+    #
+    # The controller’s communication protocol defines two different representations:
+    #
+    # 1. In the case of reading the flow (GetFlow):
+    #    - The instantaneous flow value is stored in a signed 16‐bit register.
+    #    - The documentation (docs/DOC-MANUAL-BASIS2.pdf) specifies that the flow
+    #      (SCCM -> cm3/min) is calculated by dividing the raw register value by 10.
+    #      However, because the register is a signed 16-bit integer (int16),
+    #      negative values are possible.
+    #
+    #    - For example, if the flow register returns 0xFFFF:
+    #         - Interpreted as an unsigned value, 0xFFFF equals 65535, and 65535/10 would give 6553.5,
+    #           which is clearly not correct.
+    #         - Interpreted as a signed value, 0xFFFF represents -1. Dividing -1 by 10 properly yields -0.1.
+    #
+    #    - Therefore, when reading the register, it is crucial to convert the raw 16-bit number from an
+    #      unsigned representation to a signed one before dividing by the scaling factor.
+    #
+    # 2. In the case of writing the flow setpoint (SetFlow):
+    #    - The instrument expects the setpoint to be communicated as a signed 32-bit integer value.
+    #    - This value should represent the flow setpoint multiplied by 1000
+    #      (i.e. with three decimal places of precision).
+    #
+    #    - For instance, if you want to set a flow of 25.0 flow units:
+    #         - Multiply 25.0 by 1000 to get 25000. This integer (25000) represents
+    #           the setpoint with millisecond resolution.
+    #
+    #    - Since the MODBUS registers can handle only 16 bits at a time,
+    #      the 32-bit value (25000 in this example)
+    #      must be split across two registers:
+    #         - The high 16 bits: obtained by doing a right-shift (value >> 16)
+    #         - The low 16 bits: obtained by masking with 0xFFFF (value & 0xFFFF)
+    #
+    #    - In our example, since 25000 is less than 65536 (2^16),
+    #      the high 16 bits are 0 and the low 16 bits are 25000.
+    #      For larger numbers the high bits would carry a non-zero value.
+    #
+    # In summary:
+    # - In GetFlow, the conversion from a 16-bit raw register
+    #   (interpreted as unsigned by default) to a signed
+    #   integer is crucial to correctly represent negative or near-zero values.
+    #
+    # - In SetFlow, multiplying by 1000 converts the setpoint to an integer
+    #   with three decimal places, and then splitting
+    #   that 32-bit integer into two 16-bit registers (high and low parts) is necessary
+    #   because the protocol uses two registers
+    #   for a full signed 32-bit setpoint value.
+    #
+    # Detailed Examples:
+    #
+    # A) GetFlow Example:
+    #    - Suppose the flow register value is 0xFFFF.
+    #      Interpreted as unsigned: 0xFFFF = 65535, and 65535 / 10 = 6553.5 (wrong).
+    #      Correctly interpreted as signed (int16): 0xFFFF = -1, and -1 / 10 = -0.1 (correct).
+    #
+    # B) SetFlow Example:
+    #    - Desired setpoint = 25.0 flow units.
+    #      Multiply by 1000: 25.0 * 1000 = 25000.
+    #      In hexadecimal, 25000 = 0x61A8.
+    #      High 16 bits: 25000 >> 16 = 0       (because 25000 < 65536).
+    #      Low 16 bits: 25000 & 0xFFFF = 25000.
+    #      The controller will combine these two register values to obtain
+    #      the full 32-bit integer (25000) to set the setpoint.
 
     @modbus_operation(
         "РРГ: Установка расхода (запись в регистры "
@@ -112,21 +171,12 @@ class GFRController:
     def GetFlow(self):
         response = self._gfr.read_holding_registers(address=self.MODBUS_REGISTER_FLOW, count=1, slave=self.slave_id)  # type: ignore[checking on None in wrapper]
 
-        # Проверяем успешность операции и наличие данных
         if not hasattr(response, "registers") or not response.registers:
             return MODBUS_ERROR, 0
 
-        # Получаем первый регистр из ответа
         value = response.registers[0]
-
-        # Convert uint16 to int16 using struct if needed
-        # 'H' - format for uint16, 'h' - format for int16
-        # This conversion may be needed if you have negative values
-        # signed_value = unpack("h", pack("H", value))[0]
-        # flow = signed_value / 1000.0
-
-        # A more simple variant - just divide by 1000
-        flow = value / 10
+        signed_value = unpack(">h", pack(">H", value))[0]
+        flow = signed_value / 10.0
 
         return MODBUS_OK, flow
 

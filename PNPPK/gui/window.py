@@ -51,12 +51,25 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.available_ports: list[str] = self._get_available_ports()
         self.previous_port_count = len(self.available_ports)
 
+        # Variables to store previously saved ports
+        self.saved_relay_port = None
+        self.saved_gfr_port = None
+
         # Add tracking for the last successful measurement time
         self.last_measurement_time = datetime.datetime.now()
         self.measurement_stalled = False
 
+        # Initialize log file path and handle
+        self.log_file_path = None
+        self.log_file_handle = None
+        # self.log_file_announced = False # No longer needed
+
         self._create_toolbar()
         self._create_central_widget()
+        self._init_logging()  # Initialize logging setup
+
+        # Load saved port settings
+        self._load_port_settings()
 
         self.close_shortcut_w = QShortcut(self)
         self.close_shortcut_w.setKey(QKeySequence("Ctrl+W"))
@@ -80,6 +93,42 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.stall_check_timer.timeout.connect(self._check_measurement_stall)
         self.stall_check_timer.start(5000)  # Check every 5 seconds
 
+    def _init_logging(self):
+        """Initializes the logging system, creates the log file and keeps the handle open."""
+        try:
+            log_dir = os.path.join(os.path.dirname(__file__), "..", "log")
+            os.makedirs(log_dir, exist_ok=True)
+            log_filename_format = "%d.%m.%Y_%H-%M-%S"
+            initial_log_path = os.path.join(
+                log_dir, f"{datetime.datetime.now().strftime(log_filename_format)}.log"
+            )
+            self.log_file_path = os.path.abspath(initial_log_path)
+
+            # Assert that the path is not None before using it
+            assert (
+                self.log_file_path is not None
+            ), "Путь к файлу лога не должен быть None"
+
+            # Open the file and store the handle
+            self.log_file_handle = open(self.log_file_path, "a", encoding="utf-8")
+
+            # Announce log file path in console
+            self.log_console.append(
+                f"[{datetime.datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] Все записи из журнала событий будут записываться в файл: {self.log_file_path}"
+            )
+
+        except Exception as e:
+            self.log_file_path = None
+            self.log_file_handle = None
+            error_message = f"[КРИТИЧЕСКАЯ ОШИБКА ЛОГГИРОВАНИЯ {datetime.datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] Не удалось инициализировать файл лога: {e}"
+            self.log_console.append(error_message)
+            # Show critical error to user
+            QMessageBox.critical(
+                self,
+                "Ошибка Логгирования",
+                f"Не удалось создать или открыть файл лога.\n{error_message}\nЛоггирование в файл будет отключено.",
+            )
+
     def closeEvent(self, event: QtGui.QCloseEvent) -> None:
         """
         Overrides the window close event to prompt the user for confirmation
@@ -93,6 +142,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
+            # Save current port settings before closing
+            self._save_port_settings()
+
             self._safe_close_connections()
             event.accept()
         else:
@@ -161,7 +213,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if self.relay_controller._relay is not None:
             if not self.relay_controller._relay.connected:
                 raise Exception(
-                    f"Соединение с реле потеряно, проверьте подключение (порт, скорость, биты). {HELP_MESSAGE}"
+                    f"Соединение с реле потеряно, проверьте подключение. {HELP_MESSAGE}"
                 )
 
     def _handle_device_disconnection(self, message):
@@ -387,14 +439,26 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
+            # Save current port settings before closing
+            self._save_port_settings()
             self._safe_close_connections()
             QtWidgets.QApplication.quit()
 
     def _open_connections(self):
         self._load_config_data()
 
-        # 1. Connect to the relay
         relay_port = self.combo_port_1.currentText()
+        gfr_port = self.combo_port_2.currentText()
+
+        if relay_port == gfr_port:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Реле и РРГ подключены к одному порту. Пожалуйста, измените порты и повторите попытку.",
+            )
+            return
+
+        # 1. Connect to the relay
         relay_err = self.relay_controller.TurnOn(
             relay_port,
             baudrate=self.relay_baudrate,
@@ -405,22 +469,18 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             timeout=self.relay_timeout,
         )
         if relay_err != MODBUS_OK:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                f"Не удалось подключиться к реле на порту {relay_port}. "
+                "Убедитесь, что порт подключен и не занят другим устройством. "
+                "Если проблема не решена, попробуйте использовать другой порт.",
+            )
             return
         else:
             self._log_message(f"Реле подключено к порту {relay_port}.")
 
         # 2. Connect to the Gas Flow Regulator
-        gfr_port = self.combo_port_2.currentText()
-        if relay_port == gfr_port:
-            QMessageBox.critical(
-                self,
-                "Ошибка",
-                "Реле и РРГ подключены к одному порту. Пожалуйста, измените порты и повторите попытку.",
-            )
-            return
-
-        # No need to add a zero point - we want the graph to start with the first actual measurement
-
         gfr_err = self.gfr_controller.TurnOn(
             gfr_port,
             baudrate=self.gfr_baudrate,
@@ -442,6 +502,14 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             # before the first measurement, so the action is visible on the graph
             QtCore.QTimer.singleShot(200, self._force_update_graph)
 
+        if (
+            self.relay_controller.IsDisconnected()
+            and self.gfr_controller.IsDisconnected()
+        ):
+            self._log_message(
+                "Не удалось подключиться ни к одному устройству, проверьте порядок подключения устройств и повторите попытку."
+            )
+
     def _force_update_graph(self):
         if self.gfr_controller.IsConnected() and self.toggle_gfr_button.isChecked():
             try:
@@ -458,6 +526,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 self._log_message(
                     f"Ошибка при обновлении графика после включения, проверьте подключение к РРГ. {HELP_MESSAGE}"
                 )
+                self._perform_auto_recovery()
 
     def _close_connections(self):
         """
@@ -495,8 +564,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         gfr_config_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "config", "gfr.yaml"
         )
-        relay_port = self.combo_port_1.currentText()
-        gfr_port = self.combo_port_2.currentText()
         try:
             self.gfr_config_dict = self.config_loader.load_config(gfr_config_path)
             self.relay_config_dict = self.config_loader.load_config(relay_config_path)
@@ -542,6 +609,15 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         available = [port.device for port in ports]
         return available
 
+    def _sort_com_ports(self, ports):
+        def extract_number(port):
+            try:
+                return int(port.replace("COM", ""))
+            except (ValueError, AttributeError):
+                return 0
+
+        return sorted(ports, key=extract_number)
+
     def _toggle_ui(self):
         if len(self.available_ports) < 2:
             self._log_message(
@@ -563,9 +639,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.combo_port_1 = QtWidgets.QComboBox(self)
         self.combo_port_1.setToolTip(
             "Выберите COM-порт для реле. Чтобы не перепутать COM-порты, "
-            "Вы можете посмотреть в мененджер устройств, для этого наберите "
-            'в поиске "Диспетчер устройств" (в англ. версии - "Device Manager") -> "COM-порты". Там Вы увидите '
-            "все устройства и их COM-порты."
+            "Вы можете выключить одно устройство и посмотреть какой COM-порт стал недоступен,"
+            "таким образом Вы поймете какой порт для какого устройства."
         )
         self.toolbar.addWidget(self.combo_port_1)
 
@@ -620,31 +695,46 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             )
 
     def _update_combo_boxes(self, initial=False):
+        """
+        Updates the contents of the port combo boxes while maintaining selections.
+
+        The same port can appear in both combo boxes, but we ensure that if
+        the user selects a port in one box, we don't automatically remove it
+        from the other box's options - only update when the user explicitly changes
+        the selection.
+
+        :param initial: bool
+            If True, initializes both combo boxes with all available ports.
+            If False, preserves the selected ports and only updates the other combo box.
+        """
+        # Store current selections
         current1 = self.combo_port_1.currentText()
         current2 = self.combo_port_2.currentText()
 
+        # Block signals to prevent cascading updates
         self.combo_port_1.blockSignals(True)
         self.combo_port_2.blockSignals(True)
 
+        # Clear both combo boxes
         self.combo_port_1.clear()
         self.combo_port_2.clear()
 
-        ports_for_combo1 = list(self.available_ports)
-        ports_for_combo2 = list(self.available_ports)
-        if not initial:
-            if current2 in ports_for_combo1:
-                ports_for_combo1.remove(current2)
-            if current1 in ports_for_combo2:
-                ports_for_combo2.remove(current1)
+        # Always show all available ports in both combo boxes
+        self.combo_port_1.addItems(self.available_ports)
+        self.combo_port_2.addItems(self.available_ports)
 
-        self.combo_port_1.addItems(ports_for_combo1)
-        self.combo_port_2.addItems(ports_for_combo2)
+        # Restore previous selections if they still exist in the available ports
+        if current1 and current1 in self.available_ports:
+            index1 = self.combo_port_1.findText(current1)
+            if index1 >= 0:
+                self.combo_port_1.setCurrentIndex(index1)
 
-        if current1 in ports_for_combo1:
-            self.combo_port_1.setCurrentIndex(ports_for_combo1.index(current1))
-        if current2 in ports_for_combo2:
-            self.combo_port_2.setCurrentIndex(ports_for_combo2.index(current2))
+        if current2 and current2 in self.available_ports:
+            index2 = self.combo_port_2.findText(current2)
+            if index2 >= 0:
+                self.combo_port_2.setCurrentIndex(index2)
 
+        # Re-enable signals
         self.combo_port_1.blockSignals(False)
         self.combo_port_2.blockSignals(False)
 
@@ -668,10 +758,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         form_layout = QtWidgets.QHBoxLayout()
         self.setpoint_line_edit = QtWidgets.QLineEdit(self)
         self.setpoint_line_edit.setPlaceholderText(
-            "Введите заданный расход в дробной форме (например: 50,5)"
+            "Введите заданный расход как целочисленное значение (например: 50)"
         )
-        double_validator = QtGui.QDoubleValidator(self)
-        self.setpoint_line_edit.setValidator(double_validator)
+        int_validator = QtGui.QIntValidator(self)
+        int_validator.setBottom(0)  # Lower limit of the GFR [cm3/min]
+        int_validator.setTop(500)  # Upper limit of the GFR [cm3/min]
+        self.setpoint_line_edit.setValidator(int_validator)
         form_layout.addWidget(self.setpoint_line_edit)
 
         self.send_setpoint_button = QtWidgets.QPushButton(
@@ -741,14 +833,22 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def _send_setpoint(self):
+        if not self.toggle_gfr_button.isChecked():
+            QMessageBox.warning(
+                self,
+                "Внимание",
+                "РРГ не включен. Сначала включите РРГ, чтобы задать уставку расхода.",
+                QMessageBox.Ok,
+            )
+            return
+
         text = self.setpoint_line_edit.text()
         if text == "":
             self._log_message("Значение заданного расхода пустое.")
             return
 
         try:
-            text = text.replace(",", ".")
-            setpoint = float(text)
+            setpoint = int(text)
         except ValueError:
             self._log_message(
                 f"Неверное значение заданного расхода, введенное значение: {text} [см3/мин]."
@@ -763,12 +863,24 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if err != MODBUS_OK:
             self._gfr_show_error_msg()
         else:
-            self._log_message(
-                f"Заданный расход {setpoint} [см3/мин] отправлен успешно."
-            )
+            self._log_message(f"Успешно задан расход {setpoint} [см3/мин].")
 
     def _log_message(self, message: str):
-        self.log_console.append(message)
+        # Format message with timestamp for console output
+        console_message = (
+            f"[{datetime.datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] {message}"
+        )
+        self.log_console.append(console_message)
+
+        # Append the same formatted message to the log file
+        try:
+            if self.log_file_path:
+                with open(self.log_file_path, "a", encoding="utf-8") as f:
+                    f.write(console_message + "\n")
+        except Exception as e:
+            # Log an error to the console if file writing fails
+            error_message = f"[ОШИБКА ЗАПИСИ В ЛОГ {datetime.datetime.now().strftime('%d.%m.%Y %H:%M:%S')}] Не удалось записать в {self.log_file_path}: {e}"
+            self.log_console.append(error_message)
 
     def _gfr_show_error_msg(self):
         gfr_error = self.gfr_controller.GetLastError()
@@ -907,7 +1019,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
     def _check_measurement_stall(self):
         """
         Checks if measurements have stopped coming in while the GFR is connected.
-        If measurements have stalled for a significant time, alerts the user.
+        If measurements have stalled for a significant time, performs auto-recovery.
         """
         # Only check if GFR is supposedly connected and we haven't already detected a stall
         if (
@@ -925,11 +1037,86 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             # If more than 10 seconds have passed without a measurement, consider it stalled
             if time_since_last_measurement > 10:
                 self.measurement_stalled = True
-                self._show_stall_message()
+                self._perform_auto_recovery()
+
+    def _perform_auto_recovery(self):
+        """
+        Automatically recovers from a stalled measurement state by
+        reconnecting to the devices without user intervention.
+        """
+        QMessageBox.warning(
+            self,
+            "ВНИМАНИЕ",
+            "Измерения прекратились. Выполняется автоматическое восстановление соединения...",
+            QMessageBox.Ok,
+        )
+        self._log_message(
+            "ВНИМАНИЕ: Измерения прекратились. Выполняется автоматическое восстановление соединения..."
+        )
+
+        # Remember the current state
+        was_gfr_enabled = self.toggle_gfr_button.isChecked()
+
+        # 1. Safely close all existing connections
+        self._safe_close_connections()
+
+        # 2. Short delay to ensure all connections are properly closed
+        QtCore.QTimer.singleShot(1000, lambda: self._continue_recovery(was_gfr_enabled))
+
+    def _continue_recovery(self, should_reconnect):
+        """
+        Second part of the recovery process after a short delay.
+        Reopens connections if needed.
+        """
+        # 3. Refresh available ports
+        self._refresh_ports(show_message=False)
+
+        # 4. If the GFR was enabled before, reconnect
+        if should_reconnect:
+            # Re-enable the toggle button (without triggering the signal)
+            self.toggle_gfr_button.blockSignals(True)
+            self.toggle_gfr_button.setChecked(True)
+            self.toggle_gfr_button.blockSignals(False)
+
+            # Reopen connections
+            self._open_connections()
+
+            if self.gfr_controller.IsConnected():
+                self._log_message(
+                    "Соединение восстановлено успешно. Измерения продолжаются."
+                )
+                # Restart the graph timer to resume measurements
+                if hasattr(self, "graph_timer") and self.graph_timer is not None:
+                    self.graph_timer.start(PLOT_UPDATE_TIME_TICK_MS)
+            else:
+                self._log_message("Не удалось восстановить соединение автоматически.")
+                # Now show message to user since auto-recovery failed
+                self._show_recovery_failed_message()
+
+        # Reset the stalled flag to allow future recovery attempts
+        self.measurement_stalled = False
+        # Update the last measurement time to avoid immediate re-triggering
+        self.last_measurement_time = datetime.datetime.now()
+
+    def _show_recovery_failed_message(self):
+        """
+        Shows a message to the user when automatic recovery fails.
+        """
+        QMessageBox.warning(
+            self,
+            "Ошибка восстановления",
+            "Не удалось автоматически восстановить соединение с РРГ.\n\n"
+            "Рекомендуется:\n"
+            "— перезапустить программу;\n"
+            "— проверить физическое подключение устройства;\n"
+            "— убедиться, что устройство включено и функционирует.",
+            QMessageBox.Ok,
+        )
 
     def _show_stall_message(self):
         """
         Shows a message to the user when measurements have stalled.
+        This is no longer used directly, kept for reference.
         """
         self._log_message(
             "ВНИМАНИЕ: Измерения прекратились, возможно, соединение с РРГ потеряно."
@@ -945,3 +1132,161 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             "— убедиться, что устройство включено и функционирует.",
             QMessageBox.Ok,
         )
+
+    def _save_port_settings(self):
+        """
+        Saves the current port selections to a configuration file.
+        This is called before the application exits.
+        """
+        try:
+            config_dir = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "config"
+            )
+            os.makedirs(config_dir, exist_ok=True)
+
+            ports_config_path = os.path.join(config_dir, "ports.yaml")
+
+            ports_config = {
+                "relay_port": self.combo_port_1.currentText(),
+                "gfr_port": self.combo_port_2.currentText(),
+            }
+
+            # Only save if we have valid ports selected
+            if ports_config["relay_port"] and ports_config["gfr_port"]:
+                self.config_loader.save_config(ports_config_path, ports_config)
+                self._log_message("Настройки портов сохранены")
+
+        except Exception as e:
+            self._log_message(f"Не удалось сохранить настройки портов: {e}")
+
+    def _load_port_settings(self):
+        """
+        Loads saved port selections from the configuration file.
+        Called during application startup.
+        """
+        try:
+            ports_config_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "config", "ports.yaml"
+            )
+
+            if os.path.exists(ports_config_path):
+                ports_config = self.config_loader.load_config(ports_config_path)
+
+                if ports_config and isinstance(ports_config, dict):
+                    self.saved_relay_port = ports_config.get("relay_port")
+                    self.saved_gfr_port = ports_config.get("gfr_port")
+
+                    # Apply saved settings if available ports match
+                    self._apply_saved_port_settings()
+
+        except Exception as e:
+            self._log_message(f"Не удалось загрузить настройки портов: {e}")
+
+    def _apply_saved_port_settings(self):
+        """
+        Tries to apply saved port settings and shows warnings if saved ports are no longer available.
+        """
+        if not self.saved_relay_port and not self.saved_gfr_port:
+            # If there are no saved ports, set the default ports
+            self._set_default_com_ports()
+            return
+
+        unavailable_ports = []
+
+        # Check if saved ports are still available
+        if self.saved_relay_port and self.saved_relay_port not in self.available_ports:
+            unavailable_ports.append(f"реле ({self.saved_relay_port})")
+
+        if self.saved_gfr_port and self.saved_gfr_port not in self.available_ports:
+            unavailable_ports.append(f"РРГ ({self.saved_gfr_port})")
+
+        # If some ports are unavailable, show a warning
+        if unavailable_ports:
+            warning_message = (
+                f"Порты, используемые при предыдущем запуске программы для "
+                f"{' и '.join(unavailable_ports)}, сейчас недоступны.\n\n"
+                f"Возможно, изменилось физическое подключение устройств или их порядок.\n"
+                f"Доступные в данный момент порты: {', '.join(self.available_ports)}"
+            )
+
+            QMessageBox.warning(
+                self,
+                "Изменение портов",
+                warning_message,
+                QMessageBox.Ok,
+            )
+
+            self._log_message(f"Предупреждение: {warning_message}")
+
+        # Apply saved settings for available ports
+        self._try_set_saved_ports()
+
+    def _set_default_com_ports(self):
+        """
+        Sets default COM ports when the application starts:
+        - The lowest numbered COM port in the first dropdown (for the relay)
+        - The highest numbered COM port in the second dropdown (for the GFR)
+        """
+        if not self.available_ports:
+            return
+
+        sorted_ports = self._sort_com_ports(self.available_ports)
+
+        if sorted_ports:
+            self.combo_port_1.blockSignals(True)
+
+            lowest_port = sorted_ports[0]
+            lowest_index = self.combo_port_1.findText(lowest_port)
+            if lowest_index >= 0:
+                self.combo_port_1.setCurrentIndex(lowest_index)
+
+            self.combo_port_1.blockSignals(False)
+
+        if len(sorted_ports) > 1:
+            self.combo_port_2.blockSignals(True)
+
+            highest_port = sorted_ports[-1]
+            highest_index = self.combo_port_2.findText(highest_port)
+            if highest_index >= 0:
+                self.combo_port_2.setCurrentIndex(highest_index)
+
+            self.combo_port_2.blockSignals(False)
+
+        self._update_combo_boxes()
+
+    def _try_set_saved_ports(self):
+        """
+        Attempts to set the port dropdowns to the saved values if they're available
+        """
+        self.combo_port_1.blockSignals(True)
+        self.combo_port_2.blockSignals(True)
+
+        # Try to set relay port
+        if self.saved_relay_port and self.saved_relay_port in self.available_ports:
+            index = self.combo_port_1.findText(self.saved_relay_port)
+            if index >= 0:
+                self.combo_port_1.setCurrentIndex(index)
+        else:
+            sorted_ports = self._sort_com_ports(self.available_ports)
+            if sorted_ports:
+                lowest_index = self.combo_port_1.findText(sorted_ports[0])
+                if lowest_index >= 0:
+                    self.combo_port_1.setCurrentIndex(lowest_index)
+
+        # Try to set GFR port
+        if self.saved_gfr_port and self.saved_gfr_port in self.available_ports:
+            index = self.combo_port_2.findText(self.saved_gfr_port)
+            if index >= 0:
+                self.combo_port_2.setCurrentIndex(index)
+        else:
+            sorted_ports = self._sort_com_ports(self.available_ports)
+            if len(sorted_ports) > 0:
+                highest_index = self.combo_port_2.findText(sorted_ports[-1])
+                if highest_index >= 0:
+                    self.combo_port_2.setCurrentIndex(highest_index)
+
+        self.combo_port_1.blockSignals(False)
+        self.combo_port_2.blockSignals(False)
+
+        # Update dropdowns based on selections
+        self._update_combo_boxes()

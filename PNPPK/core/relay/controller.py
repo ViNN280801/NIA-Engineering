@@ -60,13 +60,6 @@ class RelayController:
         error_message = (
             f"Не удалось подключиться к реле после {connect_attempts} попыток"
         )
-        if original_error_message:
-            error_message += (
-                f". Оригинальное сообщение об ошибке, полученное от MODBUS: {original_error_message}. "
-                + 'Перепроверьте провода или соответствие номеров портов, или переустановите драйвер ["CH341SER.EXE"]. '
-                + "Он находится в папке drivers."
-            )
-
         raise Exception(error_message)
 
     @modbus_operation("РЕЛЕ: Закрытие соединения с устройством", "self._relay")

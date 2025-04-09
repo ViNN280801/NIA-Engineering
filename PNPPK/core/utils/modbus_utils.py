@@ -76,8 +76,8 @@ def modbus_operation(
                 # Execute the wrapped function
                 try:
                     result = func(self, *args, **kwargs)
-                except Exception as inner_e:
-                    error_msg = f"{operation_name} не удалось: {str(inner_e)}"
+                except Exception:
+                    error_msg = f"{operation_name} не удалось."
                     set_last_error(error_msg)
 
                     if cleanup_on_error and device is not None:
@@ -100,9 +100,9 @@ def modbus_operation(
                     reset_last_error()
                     return return_on_success
 
-            except Exception as e:
+            except Exception:
                 # Set error message
-                error_msg = f"{operation_name} не удалось: {str(e)}"
+                error_msg = f"{operation_name} не удалось."
                 set_last_error(error_msg)
 
                 # Clean up device if requested

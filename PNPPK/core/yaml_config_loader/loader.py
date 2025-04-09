@@ -83,7 +83,7 @@ class YAMLConfigLoader:
     """
     A utility class to load and parse YAML configuration files.
 
-    This class provides a static method to load YAML files and ensures
+    This class provides methods to load and save YAML files and ensures
     proper error handling for missing files and invalid formats.
     """
 
@@ -123,4 +123,31 @@ class YAMLConfigLoader:
         except Exception as e:
             raise YAMLConfigLoaderException(
                 f"Unexpected error loading configuration file {file_path}: {e}"
+            )
+
+    @staticmethod
+    def save_config(file_path: str, config_data: dict) -> None:
+        """
+        Saves configuration data to a YAML file.
+
+        :param file_path: str
+            Path to save the YAML file.
+        :param config_data: dict
+            The configuration data to save.
+        :raises YAMLConfigLoaderException: For errors during file saving.
+
+        Algorithm:
+        1. Attempt to open the specified file for writing.
+        2. Write the configuration data using yaml.safe_dump().
+
+        Edge Cases:
+        - Permission errors or other IO errors raise YAMLConfigLoaderException.
+        - Invalid data types in config_data may cause YAML serialization errors.
+        """
+        try:
+            with open(file_path, "w") as file:
+                yaml.safe_dump(config_data, file, default_flow_style=False)
+        except Exception as e:
+            raise YAMLConfigLoaderException(
+                f"Error saving configuration to file {file_path}: {e}"
             )
