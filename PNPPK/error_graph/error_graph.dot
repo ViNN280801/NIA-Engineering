@@ -1,0 +1,156 @@
+digraph ErrorGraph {
+    rankdir=TD; // Расположение сверху вниз (Top to Down)
+    node [shape=box, style=filled, fontname="Arial", fontsize=10]; // Стиль узлов по умолчанию
+
+    // --- Определения стилей (аналогично классам Mermaid) ---
+    node [fillcolor=lightgrey, fontcolor=black]; // Стиль по умолчанию (normal)
+    node [fillcolor="#ddffdd", fontcolor=black]; // success
+    N_success [label="Успешные операции"]; // Легенда для успеха (пример, можно убрать)
+    node [fillcolor="#ffdddd", fontcolor=black]; // error
+    N_error [label="Ошибки/Критические ситуации"]; // Легенда для ошибок
+    node [fillcolor="#ffffdd", fontcolor=black]; // warning
+    N_warning [label="Предупреждения"]; // Легенда для предупреждений
+    
+    // Сброс стиля к дефолтному перед определением узлов
+    node [fillcolor=lightgrey, fontcolor=black]; 
+
+    // --- Главные вершины ---
+    START [label="Запуск программы"];
+    V1 [label="1. Включение программы"];
+    V2 [label="2. Между запусками"];
+    V3 [label="3. Во время работы"];
+    V4 [label="4. Работа с данными и графиком"];
+    V5 [label="5. Завершение работы"];
+
+    START -> V1;
+    V1 -> V2;
+    V2 -> V3;
+    V3 -> V4;
+    V3 -> V5;
+
+    // --- 1. Включение программы ---
+    V1_1 [label="1.1 Оба устройства подключены"];
+    V1_2 [label="1.2 Реле отключено"];
+    V1_3 [label="1.3 РРГ отключено"];
+    V1_4 [label="1.4 Оба отключены"];
+
+    V1 -> V1_1; V1 -> V1_2; V1 -> V1_3; V1 -> V1_4;
+
+    V1_1_1 [label="1.1.1 Порты обнаружены", fillcolor="#ddffdd"]; // success
+    V1_1_2 [label="1.1.2 Сохраненные порты недоступны", fillcolor="#ffffdd"]; // warning
+    V1_1 -> V1_1_1; V1_1 -> V1_1_2;
+    
+    V1_2_1 [label="1.2.1 Один COM-порт", fillcolor="#ffffdd"]; // warning
+    V1_2_2 [label="1.2.2 Сохраненный порт реле недоступен", fillcolor="#ffdddd"]; // error
+    V1_2 -> V1_2_1; V1_2 -> V1_2_2;
+
+    V1_3_1 [label="1.3.1 Один COM-порт", fillcolor="#ffffdd"]; // warning
+    V1_3_2 [label="1.3.2 Сохраненный порт РРГ недоступен", fillcolor="#ffdddd"]; // error
+    V1_3 -> V1_3_1; V1_3 -> V1_3_2;
+
+    V1_4_1 [label="1.4.1 Нет COM-портов", fillcolor="#ffdddd"]; // error
+    V1_4 -> V1_4_1;
+
+    // --- 2. Между запусками ---
+    V2_1 [label="2.1 Нажатие 'Включить РРГ'"];
+    V2_2 [label="2.2 Нажатие 'Выключить РРГ'"];
+
+    V2 -> V2_1; V2 -> V2_2;
+
+    V2_1_1 [label="2.1.1 Успешное подключение", fillcolor="#ddffdd"]; // success
+    V2_1_2 [label="2.1.2 Один порт для обоих", fillcolor="#ffdddd"]; // error
+    V2_1_3 [label="2.1.3 Ошибка подключения реле", fillcolor="#ffdddd"]; // error
+    V2_1_4 [label="2.1.4 Ошибка подключения РРГ", fillcolor="#ffdddd"]; // error
+    V2_1 -> V2_1_1; V2_1 -> V2_1_2; V2_1 -> V2_1_3; V2_1 -> V2_1_4;
+
+    V2_2_1 [label="2.2.1 Успешное отключение", fillcolor="#ddffdd"]; // success
+    V2_2_2 [label="2.2.2 Ошибка отключения РРГ", fillcolor="#ffdddd"]; // error
+    V2_2_3 [label="2.2.3 Ошибка отключения реле", fillcolor="#ffdddd"]; // error
+    V2_2 -> V2_2_1; V2_2 -> V2_2_2; V2_2 -> V2_2_3;
+    
+    // --- 3. Во время работы ---
+    V3_1 [label="3.1 Физическое отключение"];
+    V3_2 [label="3.2 Потеря связи"];
+    V3_3 [label="3.3 Остановка измерений"];
+    V3_4 [label="3.4 Управление уставкой"];
+
+    V3 -> V3_1; V3 -> V3_2; V3 -> V3_3; V3 -> V3_4;
+
+    V3_1_1 [label="3.1.1 Отключение реле", fillcolor="#ffdddd"]; // error
+    V3_1_2 [label="3.1.2 Отключение РРГ", fillcolor="#ffdddd"]; // error
+    V3_1_3 [label="3.1.3 Отключение обоих", fillcolor="#ffdddd"]; // error
+    V3_1 -> V3_1_1; V3_1 -> V3_1_2; V3_1 -> V3_1_3;
+
+    V3_2_1 [label="3.2.1 Потеря связи с РРГ", fillcolor="#ffdddd"]; // error
+    V3_2_2 [label="3.2.2 Потеря связи с реле", fillcolor="#ffdddd"]; // error
+    V3_2 -> V3_2_1; V3_2 -> V3_2_2;
+
+    V3_3_1 [label="3.3.1 Измерения прекратились", fillcolor="#ffffdd"]; // warning
+    V3_3_2 [label="3.3.2 Восстановление успешно", fillcolor="#ddffdd"]; // success
+    V3_3_3 [label="3.3.3 Восстановление не удалось", fillcolor="#ffdddd"]; // error
+    V3_3 -> V3_3_1;
+    V3_3_1 -> V3_3_2; V3_3_1 -> V3_3_3;
+
+    V3_4_1 [label="3.4.1 РРГ не включен", fillcolor="#ffffdd"]; // warning
+    V3_4_2 [label="3.4.2 Пустое значение", fillcolor="#ffffdd"]; // warning
+    V3_4_3 [label="3.4.3 Некорректное значение", fillcolor="#ffffdd"]; // warning
+    V3_4_4 [label="3.4.4 Ошибка задания", fillcolor="#ffdddd"]; // error
+    V3_4_5 [label="3.4.5 Успешное задание", fillcolor="#ddffdd"]; // success
+    V3_4 -> V3_4_1; V3_4 -> V3_4_2; V3_4 -> V3_4_3; V3_4 -> V3_4_4; V3_4 -> V3_4_5;
+
+    // --- 4. Работа с данными и графиком ---
+    V4_1 [label="4.1 Очистка графика"];
+    V4_2 [label="4.2 Сохранение CSV"];
+    V4_3 [label="4.3 Сохранение PNG"];
+    
+    V4 -> V4_1; V4 -> V4_2; V4 -> V4_3;
+
+    V4_1_1 [label="4.1.1 График очищен", fillcolor="#ddffdd"]; // success
+    V4_1 -> V4_1_1;
+
+    V4_2_1 [label="4.2.1 Нет данных", fillcolor="#ffffdd"]; // warning
+    V4_2_2 [label="4.2.2 Данные сохранены", fillcolor="#ddffdd"]; // success
+    V4_2_3 [label="4.2.3 Ошибка сохранения", fillcolor="#ffdddd"]; // error
+    V4_2 -> V4_2_1; V4_2 -> V4_2_2; V4_2 -> V4_2_3;
+
+    V4_3_1 [label="4.3.1 Нет данных", fillcolor="#ffffdd"]; // warning
+    V4_3_2 [label="4.3.2 График сохранен", fillcolor="#ddffdd"]; // success
+    V4_3_3 [label="4.3.3 Ошибка сохранения", fillcolor="#ffdddd"]; // error
+    V4_3 -> V4_3_1; V4_3 -> V4_3_2; V4_3 -> V4_3_3;
+
+    // --- 5. Завершение работы ---
+    V5_1 [label="5.1 Закрытие окна"];
+    V5_2 [label="5.2 Горячие клавиши"];
+    V5_3 [label="5.3 Ошибки закрытия"];
+
+    V5 -> V5_1; V5 -> V5_2; V5 -> V5_3;
+    
+    V5_1_1 [label="5.1.1 Подтверждение"];
+    V5_1_2 [label="5.1.2 Отмена"];
+    V5_1 -> V5_1_1; V5_1 -> V5_1_2;
+
+    V5_2_1 [label="5.2.1 Подтверждение"];
+    V5_2_2 [label="5.2.2 Отмена"];
+    V5_2 -> V5_2_1; V5_2 -> V5_2_2;
+
+    V5_3_1 [label="5.3.1 Ошибка отключения РРГ", fillcolor="#ffdddd"]; // error
+    V5_3_2 [label="5.3.2 Ошибка отключения реле", fillcolor="#ffdddd"]; // error
+    V5_3_3 [label="5.3.3 Общая ошибка", fillcolor="#ffdddd"]; // error
+    V5_3 -> V5_3_1; V5_3 -> V5_3_2; V5_3 -> V5_3_3;
+
+    // --- Легенда (опционально, можно скрыть или оформить кластером) ---
+    // Можно раскомментировать, если нужна легенда прямо на графе
+    /*
+    subgraph cluster_legend {
+        label = "Легенда";
+        style=filled;
+        color=lightgrey;
+        node [style=filled, shape=box];
+        N_success [fillcolor="#ddffdd"];
+        N_warning [fillcolor="#ffffdd"];
+        N_error [fillcolor="#ffdddd"];
+        N_success -> N_warning [style=invis]; // Расположить вертикально
+        N_warning -> N_error [style=invis];
+    }
+    */
+} 
