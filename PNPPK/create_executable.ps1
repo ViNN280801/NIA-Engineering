@@ -57,3 +57,27 @@ Write-Host "Extracting driver files from $ZIP_FILE..."
 Expand-Archive -Path $ZIP_FILE -DestinationPath $DRIVERS_DIR -Force
 
 Write-Host "Driver files copied to $DRIVERS_DIR"
+
+# Remove ports.yaml file from the distribution
+$PORTS_CONFIG_FILE = "$DIST_DIR\$APP_NAME\_internal\config\ports.yaml"
+if (Test-Path $PORTS_CONFIG_FILE) {
+    Write-Host "Removing ports configuration file from distribution..."
+    Remove-Item -Force $PORTS_CONFIG_FILE
+    Write-Host "Ports configuration file removed from distribution."
+}
+else
+{
+	Write-Host "Ports configuration [$PORTS_CONFIG_FILE] file not found in distribution."
+}
+
+# Create a ZIP archive of the application directory
+Write-Host "Creating ZIP archive of the application..."
+$ZIP_OUTPUT = "$DIST_DIR\$APP_NAME.zip"
+if (Test-Path $ZIP_OUTPUT) {
+    Remove-Item -Force $ZIP_OUTPUT
+}
+
+# Using Compress-Archive to create the ZIP file
+Compress-Archive -Path "$DIST_DIR\$APP_NAME\*" -DestinationPath $ZIP_OUTPUT -CompressionLevel Optimal
+
+Write-Host "ZIP archive created: $ZIP_OUTPUT"
