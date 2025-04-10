@@ -981,23 +981,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         file_name = f"flow_graph_{now}.png"
 
         try:
-            fig = Figure(figsize=(12, 8), dpi=100)
-            ax = fig.add_subplot(111)
-
-            times = [t for t, _ in self.flow_data]
-            flows = [f for _, f in self.flow_data]
-
-            ax.plot(times, flows, marker="o", linestyle="-")
-            ax.set_xlabel("Время [мин]")
-            ax.set_ylabel("Расход [см3/мин]")
-            ax.set_title("Расход газа по времени Q(t)")
-
-            ax.minorticks_on()
-            ax.grid(True, which="major", linestyle="-", linewidth=0.8)
-            ax.grid(True, which="minor", linestyle="--", linewidth=0.5, alpha=0.5)
-
-            fig.tight_layout()
-            fig.savefig(file_name, format="png", dpi=300)
+            self.figure.tight_layout()
+            self.figure.savefig(file_name, format="png", dpi=300, bbox_inches="tight")
 
             self._log_message(f"График сохранен в файл: {file_name}")
 
