@@ -41,8 +41,9 @@ dist/
 output/
 out/
 
-# Virtual environment
-venv/
+# Any Python virtual environment
+*venv*/
+
 
 # libmodbus
 libmodbus/

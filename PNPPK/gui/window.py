@@ -211,7 +211,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         # We don't need to query the relay constantly as it's typically a set-and-forget device
         # Just check if the connection is still valid in the ModbusSerialClient
         if self.relay_controller._relay is not None:
-            if not self.relay_controller._relay.connected:
+            if not self.relay_controller.IsConnected():
                 raise Exception(
                     f"Соединение с реле потеряно, проверьте подключение. {HELP_MESSAGE}"
                 )

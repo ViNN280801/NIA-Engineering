@@ -25,7 +25,6 @@ if (Test-Path $BUILD_DIR) { Remove-Item -Recurse -Force $BUILD_DIR }
 # 3. Install dependencies: pip install -r requirements.txt
 # 4. Install PyInstaller: pip install PyInstaller
 # 5. Run script: .\create_executable.ps1
-source .\venv\Scripts\Activate.ps1
 Write-Host "Building executable..."
 python -m PyInstaller --noconfirm `
 	--onedir `
@@ -35,7 +34,6 @@ python -m PyInstaller --noconfirm `
 	--add-data "config;config\" `
 	--paths "." `
 	$MAIN_SCRIPT
-deactivate
 
 # Removing build directory and writing message
 Remove-Item -Recurse -Force $BUILD_DIR -ErrorAction SilentlyContinue
