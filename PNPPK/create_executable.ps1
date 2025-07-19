@@ -57,9 +57,20 @@ if ($PSVersion -ge 5) {
 }
 else {
 	# Fallback for PowerShell < 5 (e.g., Windows 7)
-	# Using .NET's System.IO.Compression.ZipFile
-	Add-Type -AssemblyName System.IO.Compression.FileSystem
-	[System.IO.Compression.ZipFile]::ExtractToDirectory($ZIP_FILE, $DRIVERS_DIR)
+	try {
+		# Attempt to load the assembly
+		Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+		[System.IO.Compression.ZipFile]::ExtractToDirectory($ZIP_FILE, $DRIVERS_DIR)
+	}
+ catch {
+		Write-Host "System.IO.Compression.FileSystem assembly not found. Using alternative method..."
+		# Use COM object for ZIP extraction (Windows built-in)
+		$shell = New-Object -ComObject Shell.Application
+		$zip = $shell.NameSpace((Resolve-Path $ZIP_FILE).Path)
+		foreach ($item in $zip.Items()) {
+			$shell.Namespace((Resolve-Path $DRIVERS_DIR).Path).CopyHere($item)
+		}
+	}
 }
 
 Write-Host "Driver files copied to $DRIVERS_DIR"
@@ -87,10 +98,14 @@ if ($PSVersion -ge 5) {
 	Compress-Archive -Path "$DIST_DIR\$APP_NAME\*" -DestinationPath $ZIP_OUTPUT -CompressionLevel Optimal
 }
 else {
-	# Fallback for PowerShell < 5 (using .NET)
-	Add-Type -AssemblyName System.IO.Compression.FileSystem
-	$compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
-	[System.IO.Compression.ZipFile]::CreateFromDirectory("$DIST_DIR\$APP_NAME", $ZIP_OUTPUT, $compressionLevel, $false)
+	try {
+		Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+		$compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
+		[System.IO.Compression.ZipFile]::CreateFromDirectory("$DIST_DIR\$APP_NAME", $ZIP_OUTPUT, $compressionLevel, $false)
+	}
+ catch {
+		Write-Host "System.IO.Compression.FileSystem assembly not found. Skipping ZIP creation."
+	}
 }
 
 Write-Host "ZIP archive created: $ZIP_OUTPUT"
