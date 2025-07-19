@@ -47,7 +47,20 @@ New-Item -Path $DRIVERS_DIR -ItemType Directory -Force
 # Extract zip file contents into drivers directory
 $ZIP_FILE = ".\adapter-espada-usbrs-485_drajver.zip"
 Write-Host "Extracting driver files from $ZIP_FILE..."
-Expand-Archive -Path $ZIP_FILE -DestinationPath $DRIVERS_DIR -Force
+
+# Check PowerShell version
+$PSVersion = $PSVersionTable.PSVersion.Major
+
+if ($PSVersion -ge 5) {
+	# Use Expand-Archive for PowerShell 5+
+	Expand-Archive -Path $ZIP_FILE -DestinationPath $DRIVERS_DIR -Force
+}
+else {
+	# Fallback for PowerShell < 5 (e.g., Windows 7)
+	# Using .NET's System.IO.Compression.ZipFile
+	Add-Type -AssemblyName System.IO.Compression.FileSystem
+	[System.IO.Compression.ZipFile]::ExtractToDirectory($ZIP_FILE, $DRIVERS_DIR)
+}
 
 Write-Host "Driver files copied to $DRIVERS_DIR"
 
@@ -69,7 +82,15 @@ if (Test-Path $ZIP_OUTPUT) {
 	Remove-Item -Force $ZIP_OUTPUT -ErrorAction SilentlyContinue
 }
 
-# Using Compress-Archive to create the ZIP file
-Compress-Archive -Path "$DIST_DIR\$APP_NAME\*" -DestinationPath $ZIP_OUTPUT -CompressionLevel Optimal
+# Using Compress-Archive (or fallback for PowerShell < 5)
+if ($PSVersion -ge 5) {
+	Compress-Archive -Path "$DIST_DIR\$APP_NAME\*" -DestinationPath $ZIP_OUTPUT -CompressionLevel Optimal
+}
+else {
+	# Fallback for PowerShell < 5 (using .NET)
+	Add-Type -AssemblyName System.IO.Compression.FileSystem
+	$compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
+	[System.IO.Compression.ZipFile]::CreateFromDirectory("$DIST_DIR\$APP_NAME", $ZIP_OUTPUT, $compressionLevel, $false)
+}
 
 Write-Host "ZIP archive created: $ZIP_OUTPUT"
