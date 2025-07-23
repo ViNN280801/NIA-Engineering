@@ -302,7 +302,11 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         """
         try:
             # Stop the graph timer ONLY if GFR was connected
-            if self.gfr_controller.IsConnected() and hasattr(self, "graph_timer") and self.graph_timer is not None:
+            if (
+                self.gfr_controller.IsConnected()
+                and hasattr(self, "graph_timer")
+                and self.graph_timer is not None
+            ):
                 self.graph_timer.stop()
 
             # 1. Disconnect the GFR
@@ -439,12 +443,16 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._safe_close_connections()
             QtWidgets.QApplication.quit()
 
-    def _open_connections(self): # This method is now obsolete and will be removed later or refactored.
+    def _open_connections(
+        self,
+    ):  # This method is now obsolete and will be removed later or refactored.
         # This method is now called only by _toggle_gfr.
         # The previous logic of connecting both devices is moved to _toggle_relay and _toggle_gfr.
         pass
 
-    def _close_connections(self): # This method is now obsolete and will be removed later or refactored.
+    def _close_connections(
+        self,
+    ):  # This method is now obsolete and will be removed later or refactored.
         # This method is now called only by _toggle_gfr.
         # The previous logic of disconnecting both devices is moved to _disconnect_relay and _disconnect_gfr.
         pass
@@ -639,7 +647,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.central_widget)
         layout = QtWidgets.QVBoxLayout()
         self.central_widget.setLayout(layout)
- 
+
         # --- Control buttons for devices ---
         control_buttons_layout = QtWidgets.QHBoxLayout()
 
@@ -654,7 +662,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.setCheckable(True)
         self.toggle_gfr_button.clicked.connect(self._toggle_gfr)
         control_buttons_layout.addWidget(self.toggle_gfr_button)
-        
+
         layout.addLayout(control_buttons_layout)
 
         # Setpoint input
@@ -752,9 +760,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.relay_controller.IsDisconnected()
             and self.gfr_controller.IsDisconnected()
         ):
-            self._log_message(
-                "Ни одно устройство не подключено."
-            )
+            self._log_message("Ни одно устройство не подключено.")
 
     @QtCore.pyqtSlot()
     def _toggle_gfr(self):
@@ -781,9 +787,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.relay_controller.IsDisconnected()
             and self.gfr_controller.IsDisconnected()
         ):
-            self._log_message(
-                "Ни одно устройство не подключено."
-            )
+            self._log_message("Ни одно устройство не подключено.")
 
     def _connect_relay(self, port):
         relay_err = self.relay_controller.TurnOn(
@@ -819,7 +823,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
     def _connect_gfr(self, port):
         # Load config data if not already loaded (might be called directly)
-        if not hasattr(self, 'gfr_config_dict'):
+        if not hasattr(self, "gfr_config_dict"):
             self._load_config_data()
 
         gfr_err = self.gfr_controller.TurnOn(
@@ -990,15 +994,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def _send_setpoint(self):
-        if not self.gfr_controller.IsConnected():
-            QMessageBox.warning(
-                self,
-                "Внимание",
-                "РРГ не включен. Сначала включите РРГ, чтобы задать уставку расхода.",
-                QMessageBox.Ok,
-            )
-            return
-
         text = self.setpoint_line_edit.text()
         if text == "":
             self._log_message("Значение заданного расхода пустое.")
@@ -1012,9 +1007,47 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             )
             return
 
-        # Check if GFR is connected before sending setpoint
-        if self.gfr_controller.IsDisconnected():
-            self._gfr_show_error_msg()
+        # Store whether GFR was connected before attempting to set setpoint
+        gfr_was_connected_initially = self.gfr_controller.IsConnected()
+
+        # If GFR is not connected, attempt a temporary connection
+        if not gfr_was_connected_initially:
+            gfr_port = self.combo_port_2.currentText()
+            if not gfr_port:
+                QMessageBox.warning(
+                    self,
+                    "Внимание",
+                    "Для установки уставки необходимо выбрать COM-порт для РРГ.",
+                    QMessageBox.Ok,
+                )
+                return
+
+            # Check for port conflict before temporary connection
+            relay_port = self.combo_port_1.currentText()
+            if self.relay_controller.IsConnected() and gfr_port == relay_port:
+                QMessageBox.critical(
+                    self,
+                    "Ошибка",
+                    "Реле и РРГ подключены к одному порту. Пожалуйста, измените порты и повторите попытку.",
+                )
+                return
+
+            self._connect_gfr(gfr_port)  # This will update toggle_gfr_button
+
+            # If connection failed, exit
+            if not self.gfr_controller.IsConnected():
+                return
+
+        # At this point, GFR should be connected (either it was already, or we just connected it)
+        if (
+            not self.gfr_controller.IsConnected()
+        ):  # Re-check after potential temporary connection attempt
+            QMessageBox.warning(
+                self,
+                "Внимание",
+                "РРГ не включен. Сначала включите РРГ, чтобы задать уставку расхода.",
+                QMessageBox.Ok,
+            )
             return
 
         err = self.gfr_controller.SetFlow(setpoint)
@@ -1022,6 +1055,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._gfr_show_error_msg()
         else:
             self._log_message(f"Успешно задан расход {setpoint} [см3/мин].")
+
+        # If the GFR was temporarily connected by this method, disconnect it
+        if not gfr_was_connected_initially and self.gfr_controller.IsConnected():
+            self._disconnect_gfr()  # This will also update the button state
 
     def _check_measurement_stall(self):
         """
@@ -1063,10 +1100,12 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         # Safely close existing GFR connection only
         if self.gfr_controller.IsConnected():
-            self._disconnect_gfr() # Disconnect GFR only, not relay
+            self._disconnect_gfr()  # Disconnect GFR only, not relay
 
         # Short delay to ensure connection is properly closed
-        QtCore.QTimer.singleShot(1000, self._continue_recovery) # No need to pass a flag
+        QtCore.QTimer.singleShot(
+            1000, self._continue_recovery
+        )  # No need to pass a flag
 
     def _continue_recovery(self):
         """
@@ -1077,8 +1116,8 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self._refresh_ports(show_message=False)
 
         # 4. Reconnect GFR if it was connected previously
-        gfr_port = self.combo_port_2.currentText() # Get selected GFR port
-        if gfr_port: # Only attempt to reconnect if a port is selected
+        gfr_port = self.combo_port_2.currentText()  # Get selected GFR port
+        if gfr_port:  # Only attempt to reconnect if a port is selected
             self._connect_gfr(gfr_port)
 
         if self.gfr_controller.IsConnected():
@@ -1152,15 +1191,16 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             }
 
             # Only save if we have valid ports selected OR if one device is connected
-            if (
-                ports_config["relay_port"]
-                or ports_config["gfr_port"]
-            ) and (self.relay_controller.IsConnected() or self.gfr_controller.IsConnected()):
+            if (ports_config["relay_port"] or ports_config["gfr_port"]) and (
+                self.relay_controller.IsConnected() or self.gfr_controller.IsConnected()
+            ):
                 self.config_loader.save_config(ports_config_path, ports_config)
                 self._log_message("Настройки портов сохранены")
             else:
                 # If no devices were connected, log that nothing was saved
-                self._log_message("Настройки портов не сохранены, так как устройства не были подключены.")
+                self._log_message(
+                    "Настройки портов не сохранены, так как устройства не были подключены."
+                )
 
         except Exception as e:
             self._log_message(f"Не удалось сохранить настройки портов: {e}")
