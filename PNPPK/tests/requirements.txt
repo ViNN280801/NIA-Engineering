@@ -1,0 +1,4 @@
+psutil
+pytest
+PyQt5
+memory_profiler

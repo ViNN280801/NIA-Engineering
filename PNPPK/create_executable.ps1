@@ -25,7 +25,6 @@ if (Test-Path $BUILD_DIR) { Remove-Item -Recurse -Force $BUILD_DIR }
 # 3. Install dependencies: pip install -r requirements.txt
 # 4. Install PyInstaller: pip install PyInstaller
 # 5. Run script: .\create_executable.ps1
-source .\venv\Scripts\Activate.ps1
 Write-Host "Building executable..."
 python -m PyInstaller --noconfirm `
 	--onedir `
@@ -35,7 +34,6 @@ python -m PyInstaller --noconfirm `
 	--add-data "config;config\" `
 	--paths "." `
 	$MAIN_SCRIPT
-deactivate
 
 # Removing build directory and writing message
 Remove-Item -Recurse -Force $BUILD_DIR -ErrorAction SilentlyContinue
@@ -49,7 +47,31 @@ New-Item -Path $DRIVERS_DIR -ItemType Directory -Force
 # Extract zip file contents into drivers directory
 $ZIP_FILE = ".\adapter-espada-usbrs-485_drajver.zip"
 Write-Host "Extracting driver files from $ZIP_FILE..."
-Expand-Archive -Path $ZIP_FILE -DestinationPath $DRIVERS_DIR -Force
+
+# Check PowerShell version
+$PSVersion = $PSVersionTable.PSVersion.Major
+
+if ($PSVersion -ge 5) {
+	# Use Expand-Archive for PowerShell 5+
+	Expand-Archive -Path $ZIP_FILE -DestinationPath $DRIVERS_DIR -Force
+}
+else {
+	# Fallback for PowerShell < 5 (e.g., Windows 7)
+	try {
+		# Attempt to load the assembly
+		Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+		[System.IO.Compression.ZipFile]::ExtractToDirectory($ZIP_FILE, $DRIVERS_DIR)
+	}
+ catch {
+		Write-Host "System.IO.Compression.FileSystem assembly not found. Using alternative method..."
+		# Use COM object for ZIP extraction (Windows built-in)
+		$shell = New-Object -ComObject Shell.Application
+		$zip = $shell.NameSpace((Resolve-Path $ZIP_FILE).Path)
+		foreach ($item in $zip.Items()) {
+			$shell.Namespace((Resolve-Path $DRIVERS_DIR).Path).CopyHere($item)
+		}
+	}
+}
 
 Write-Host "Driver files copied to $DRIVERS_DIR"
 
@@ -71,7 +93,19 @@ if (Test-Path $ZIP_OUTPUT) {
 	Remove-Item -Force $ZIP_OUTPUT -ErrorAction SilentlyContinue
 }
 
-# Using Compress-Archive to create the ZIP file
-Compress-Archive -Path "$DIST_DIR\$APP_NAME\*" -DestinationPath $ZIP_OUTPUT -CompressionLevel Optimal
+# Using Compress-Archive (or fallback for PowerShell < 5)
+if ($PSVersion -ge 5) {
+	Compress-Archive -Path "$DIST_DIR\$APP_NAME\*" -DestinationPath $ZIP_OUTPUT -CompressionLevel Optimal
+}
+else {
+	try {
+		Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction Stop
+		$compressionLevel = [System.IO.Compression.CompressionLevel]::Optimal
+		[System.IO.Compression.ZipFile]::CreateFromDirectory("$DIST_DIR\$APP_NAME", $ZIP_OUTPUT, $compressionLevel, $false)
+	}
+ catch {
+		Write-Host "System.IO.Compression.FileSystem assembly not found. Skipping ZIP creation."
+	}
+}
 
 Write-Host "ZIP archive created: $ZIP_OUTPUT"

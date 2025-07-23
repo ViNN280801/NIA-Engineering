@@ -3,7 +3,7 @@ import sys
 from time import sleep
 from typing import Optional
 from struct import pack, unpack
-from pymodbus.client import ModbusSerialClient
+from pymodbus.client.sync import ModbusSerialClient
 from core.utils import modbus_operation, get_last_error, MODBUS_OK, MODBUS_ERROR
 
 
