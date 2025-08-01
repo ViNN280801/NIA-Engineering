@@ -37,6 +37,9 @@ HELP_MESSAGE = (
     + "попробуйте перезапустить программу или поменять подключения к другим COM-портам."
 )
 
+RELAY_TEXT_WHEN_OFF = "Открыть клапаны"
+RELAY_TEXT_WHEN_ON = "Закрыть клапаны"
+
 
 class GFRControlWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -227,7 +230,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.setChecked(False)
         self.toggle_gfr_button.setText("Включить РРГ")
         self.toggle_relay_button.setChecked(False)
-        self.toggle_relay_button.setText("Включить Реле")
+        self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
         # 4. Refresh the available ports
         self._refresh_ports(show_message=False)
@@ -331,7 +334,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.setChecked(False)
         self.toggle_gfr_button.setText("Включить РРГ")
         self.toggle_relay_button.setChecked(False)
-        self.toggle_relay_button.setText("Включить Реле")
+        self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
     def _init_graph(self):
         """Initializes the Matplotlib graph for displaying flow over time."""
@@ -652,7 +655,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         control_buttons_layout = QtWidgets.QHBoxLayout()
 
         # Control button for Relay
-        self.toggle_relay_button = QtWidgets.QPushButton("Включить Реле", self)
+        self.toggle_relay_button = QtWidgets.QPushButton(RELAY_TEXT_WHEN_OFF, self)
         self.toggle_relay_button.setCheckable(True)
         self.toggle_relay_button.clicked.connect(self._toggle_relay)
         control_buttons_layout.addWidget(self.toggle_relay_button)
@@ -810,7 +813,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.toggle_relay_button.setChecked(False)
         else:
             self._log_message(f"Реле подключено к порту {port}.")
-            self.toggle_relay_button.setText("Выключить Реле")
+            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_ON)
 
     def _disconnect_relay(self):
         if self.relay_controller.IsConnected():
@@ -819,7 +822,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 self._relay_show_error_msg()
             else:
                 self._log_message("Реле отключено.")
-            self.toggle_relay_button.setText("Включить Реле")
+            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
     def _connect_gfr(self, port):
         # Load config data if not already loaded (might be called directly)
