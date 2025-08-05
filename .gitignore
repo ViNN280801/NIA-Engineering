@@ -5,6 +5,9 @@ __pycache__/
 .vs/
 .vscode/
 
+# Cursor IDE files
+.cursor
+
 # Log files
 logs/
 log/

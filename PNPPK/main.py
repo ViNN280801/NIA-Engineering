@@ -20,21 +20,21 @@ def sigint_handler(signum, frame):
     sys.exit(0)
 
 
-def _check_qt_plugin_path():
-    """
-    @brief Check if the QT_PLUGIN_PATH environment variable is set for Windows.
-    @details
-    This function checks if the QT_PLUGIN_PATH environment variable is set.
-    If it is not set, it will print an error message and exit the program.
-    """
-    if os.name == "nt":
-        qt_plugin_path = os.getenv("QT_PLUGIN_PATH")
-        if not qt_plugin_path:
-            print(
-                "QT_PLUGIN_PATH is not set. Please set it to the path of the Qt plugins. "
-                "Example: \\venv\\Lib\\site-packages\\PyQt5\\Qt5\\plugins"
-            )
-            sys.exit(1)
+# def _check_qt_plugin_path():
+#     """
+#     @brief Check if the QT_PLUGIN_PATH environment variable is set for Windows.
+#     @details
+#     This function checks if the QT_PLUGIN_PATH environment variable is set.
+#     If it is not set, it will print an error message and exit the program.
+#     """
+#     if os.name == "nt":
+#         qt_plugin_path = os.getenv("QT_PLUGIN_PATH")
+#         if not qt_plugin_path:
+#             print(
+#                 "QT_PLUGIN_PATH is not set. Please set it to the path of the Qt plugins. "
+#                 "Example: \\venv\\Lib\\site-packages\\PyQt5\\Qt5\\plugins"
+#             )
+#             sys.exit(1)
 
 
 def is_admin():
@@ -94,8 +94,6 @@ def main():
 
 
 if __name__ == "__main__":
-    _check_qt_plugin_path()
-
     try:
         main()
     except Exception:

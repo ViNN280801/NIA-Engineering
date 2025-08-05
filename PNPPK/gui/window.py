@@ -6,14 +6,17 @@ import serial.tools.list_ports
 from core.yaml_config_loader import YAMLConfigLoader
 from PyQt5.QtGui import QKeySequence
 from core.gas_flow_regulator.controller import GFRController
+from core.gas_flow_regulator.controller_mock import MockGFRController
 from core.relay.controller import RelayController
-from core.utils import MODBUS_OK, MODBUS_ERROR
+from core.relay.controller_mock import MockRelayController
+from core.utils import MODBUS_OK, MODBUS_ERROR, MOCK_MODE_REQUIRED_FILEPATH
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QMessageBox, QShortcut
 
+from platform import system as platform_system
+
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
-
 
 RELAY_DEFAULT_BAUDRATE = 115200
 RELAY_DEFAULT_TIMEOUT = 50
@@ -37,6 +40,22 @@ HELP_MESSAGE = (
     + "попробуйте перезапустить программу или поменять подключения к другим COM-портам."
 )
 
+RELAY_TEXT_WHEN_OFF = "Открыть клапаны"
+RELAY_TEXT_WHEN_ON = "Закрыть клапаны"
+GFR_TEXT_WHEN_OFF = "Включить РРГ"
+GFR_TEXT_WHEN_ON = "Выключить РРГ"
+
+
+# If we have file `mock_mode`, it can be with any content, it's not matter,
+# for us presence is enough, so, if it present, we will use mock mode,
+# otherwise, we will use real mode.
+def _check_mock_mode():
+    return os.path.exists(MOCK_MODE_REQUIRED_FILEPATH)
+
+
+MOCK_MODE = _check_mock_mode()
+print(f"MOCK_MODE: {MOCK_MODE}", flush=True)
+
 
 class GFRControlWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -44,8 +63,16 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Панель управления РРГ")
         self.resize(1200, 700)
 
-        self.gfr_controller = GFRController()
-        self.relay_controller = RelayController()
+        if MOCK_MODE:
+            self.gfr_controller = MockGFRController()
+        else:
+            self.gfr_controller = GFRController()
+
+        if MOCK_MODE:
+            self.relay_controller = MockRelayController()
+        else:
+            self.relay_controller = RelayController()
+
         self.config_loader = YAMLConfigLoader()
 
         self.available_ports: list[str] = self._get_available_ports()
@@ -203,12 +230,11 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         This is designed to be minimally intrusive.
         """
         # We don't need to query the relay constantly as it's typically a set-and-forget device
-        # Just check if the connection is still valid in the ModbusSerialClient
-        if self.relay_controller._relay is not None:
-            if not self.relay_controller.IsConnected():
-                raise Exception(
-                    f"Соединение с реле потеряно, проверьте подключение. {HELP_MESSAGE}"
-                )
+        # Just check if the connection is still valid using IsConnected()
+        if not self.relay_controller.IsConnected():
+            raise Exception(
+                f"Соединение с реле потеряно, проверьте подключение. {HELP_MESSAGE}"
+            )
 
     def _handle_device_disconnection(self, message):
         """
@@ -225,9 +251,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         # 3. Update the UI state for both buttons
         self.toggle_gfr_button.setChecked(False)
-        self.toggle_gfr_button.setText("Включить РРГ")
+        self.toggle_gfr_button.setText(GFR_TEXT_WHEN_OFF)
         self.toggle_relay_button.setChecked(False)
-        self.toggle_relay_button.setText("Включить Реле")
+        self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
         # 4. Refresh the available ports
         self._refresh_ports(show_message=False)
@@ -329,9 +355,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message(f"Ошибка при закрытии соединений: {e}")
 
         self.toggle_gfr_button.setChecked(False)
-        self.toggle_gfr_button.setText("Включить РРГ")
+        self.toggle_gfr_button.setText(GFR_TEXT_WHEN_OFF)
         self.toggle_relay_button.setChecked(False)
-        self.toggle_relay_button.setText("Включить Реле")
+        self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
     def _init_graph(self):
         """Initializes the Matplotlib graph for displaying flow over time."""
@@ -505,6 +531,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message(f"Не удалось загрузить конфигурацию: {e}")
 
     def _get_available_ports(self):
+        if MOCK_MODE:
+            return ["MOCK_COM1", "MOCK_COM2"]
+
         ports = serial.tools.list_ports.comports()
         available = [port.device for port in ports]
         return available
@@ -519,6 +548,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         return sorted(ports, key=extract_number)
 
     def _toggle_ui(self):
+        if MOCK_MODE:
+            return
+
         if len(self.available_ports) < 2:
             self._log_message(
                 "Недостаточно доступных портов. Графический интерфейс отключен."
@@ -570,6 +602,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.combo_port_2.currentIndexChanged.connect(self._on_combo_changed)
 
     def _refresh_ports(self, show_message=True):
+        if MOCK_MODE:
+            return
+
         self.available_ports: list[str] = self._get_available_ports()
         self._update_combo_boxes(initial=True)
         self._toggle_ui()
@@ -652,13 +687,13 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         control_buttons_layout = QtWidgets.QHBoxLayout()
 
         # Control button for Relay
-        self.toggle_relay_button = QtWidgets.QPushButton("Включить Реле", self)
+        self.toggle_relay_button = QtWidgets.QPushButton(RELAY_TEXT_WHEN_OFF, self)
         self.toggle_relay_button.setCheckable(True)
         self.toggle_relay_button.clicked.connect(self._toggle_relay)
         control_buttons_layout.addWidget(self.toggle_relay_button)
 
         # Control button for GFR
-        self.toggle_gfr_button = QtWidgets.QPushButton("Включить РРГ", self)
+        self.toggle_gfr_button = QtWidgets.QPushButton(GFR_TEXT_WHEN_OFF, self)
         self.toggle_gfr_button.setCheckable(True)
         self.toggle_gfr_button.clicked.connect(self._toggle_gfr)
         control_buttons_layout.addWidget(self.toggle_gfr_button)
@@ -790,6 +825,17 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self._log_message("Ни одно устройство не подключено.")
 
     def _connect_relay(self, port):
+        if MOCK_MODE:
+            import winsound
+
+            if platform_system() == "Windows":  # Check if running on Windows
+                winsound.MessageBeep(winsound.MB_OK)
+            else:
+                print("Не удалось издать звуковой сигнал, не на Windows")
+
+            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_ON)
+            return
+
         relay_err = self.relay_controller.TurnOn(
             port,
             baudrate=self.relay_baudrate,
@@ -810,16 +856,27 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.toggle_relay_button.setChecked(False)
         else:
             self._log_message(f"Реле подключено к порту {port}.")
-            self.toggle_relay_button.setText("Выключить Реле")
+            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_ON)
 
     def _disconnect_relay(self):
+        if MOCK_MODE:
+            import winsound
+
+            if platform_system() == "Windows":  # Check if running on Windows
+                winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+            else:
+                print("Не удалось издать звуковой сигнал, не на Windows")
+
+            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
+            return
+
         if self.relay_controller.IsConnected():
             relay_err = self.relay_controller.TurnOff()
             if relay_err != MODBUS_OK:
                 self._relay_show_error_msg()
             else:
                 self._log_message("Реле отключено.")
-            self.toggle_relay_button.setText("Включить Реле")
+            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
     def _connect_gfr(self, port):
         # Load config data if not already loaded (might be called directly)
@@ -838,11 +895,29 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         if gfr_err != MODBUS_OK:
             self._gfr_show_error_msg()
             self.toggle_gfr_button.setChecked(False)
-            self.toggle_gfr_button.setText("Включить РРГ")
+            self.toggle_gfr_button.setText(GFR_TEXT_WHEN_OFF)
         else:
             self._log_message(f"РРГ подключено к порту {port}.")
-            self.toggle_gfr_button.setText("Выключить РРГ")
+            self.toggle_gfr_button.setText(GFR_TEXT_WHEN_ON)
             QtCore.QTimer.singleShot(200, self._force_update_graph)
+
+    def _force_update_graph(self):
+        if self.gfr_controller.IsConnected() and self.toggle_gfr_button.isChecked():
+            try:
+                err, flow = self.gfr_controller.GetFlow()
+                if err == MODBUS_OK:
+                    current_time = datetime.datetime.now()
+                    elapsed_minutes = (
+                        current_time - self.start_time
+                    ).total_seconds() / 60
+                    self.flow_data.append((elapsed_minutes, flow))
+                    self._update_plot_visualization()
+                    self._log_message(f"Расход после включения: {flow} [см3/мин]")
+            except Exception:
+                self._log_message(
+                    f"Ошибка при обновлении графика после включения, проверьте подключение к РРГ. {HELP_MESSAGE}"
+                )
+                self._perform_auto_recovery()
 
     def _disconnect_gfr(self):
         if self.gfr_controller.IsConnected():
@@ -851,7 +926,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 self._gfr_show_error_msg()
             else:
                 self._log_message("РРГ отключено.")
-            self.toggle_gfr_button.setText("Включить РРГ")
+            self.toggle_gfr_button.setText(GFR_TEXT_WHEN_OFF)
         # We want a gap in the graph instead of zero values when disconnected
         # Don't add any point, just update the visualization
         self._update_plot_visualization()
@@ -1067,7 +1142,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         """
         # Only check if GFR is connected and we haven't already detected a stall
         if self.gfr_controller.IsConnected() and not self.measurement_stalled:
-
             current_time = datetime.datetime.now()
             # Calculate seconds since last measurement
             time_since_last_measurement = (
