@@ -736,6 +736,10 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         form_layout.addWidget(self.send_setpoint_button)
         layout.addLayout(form_layout)
 
+        if ONLY_RELAY_MODE:
+            self.send_setpoint_button.hide()
+            self.setpoint_line_edit.hide()
+
         # Buttons for working with the graph
         graph_controls_layout = QtWidgets.QHBoxLayout()
         self.clear_graph_button = QtWidgets.QPushButton("Очистить график", self)
