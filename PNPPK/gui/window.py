@@ -9,7 +9,12 @@ from core.gas_flow_regulator.controller import GFRController
 from core.gas_flow_regulator.controller_mock import MockGFRController
 from core.relay.controller import RelayController
 from core.relay.controller_mock import MockRelayController
-from core.utils import MODBUS_OK, MODBUS_ERROR, MOCK_MODE_REQUIRED_FILEPATH
+from core.utils import (
+    MODBUS_OK,
+    MODBUS_ERROR,
+    MOCK_MODE_REQUIRED_FILEPATH,
+    ONLY_RELAY_MODE_REQUIRED_FILEPATH,
+)
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QMessageBox, QShortcut
 
@@ -50,11 +55,20 @@ GFR_TEXT_WHEN_ON = "Выключить РРГ"
 # for us presence is enough, so, if it present, we will use mock mode,
 # otherwise, we will use real mode.
 def _check_mock_mode():
+    print("Checking presence of file", MOCK_MODE_REQUIRED_FILEPATH)
     return os.path.exists(MOCK_MODE_REQUIRED_FILEPATH)
 
 
+def _check_only_relay_mock_mode():
+    print("Checking presence of file", ONLY_RELAY_MODE_REQUIRED_FILEPATH)
+    return os.path.exists(ONLY_RELAY_MODE_REQUIRED_FILEPATH)
+
+
 MOCK_MODE = _check_mock_mode()
-print(f"MOCK_MODE: {MOCK_MODE}", flush=True)
+print(f"MOCK_MODE: {MOCK_MODE}")
+
+ONLY_RELAY_MODE = _check_only_relay_mock_mode()
+print(f"ONLY_RELAY_MODE: {ONLY_RELAY_MODE}")
 
 
 class GFRControlWindow(QtWidgets.QMainWindow):
@@ -698,6 +712,9 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.clicked.connect(self._toggle_gfr)
         control_buttons_layout.addWidget(self.toggle_gfr_button)
 
+        if ONLY_RELAY_MODE:
+            self.toggle_gfr_button.hide()
+
         layout.addLayout(control_buttons_layout)
 
         # Setpoint input
@@ -856,7 +873,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             self.toggle_relay_button.setChecked(False)
         else:
             self._log_message(f"Реле подключено к порту {port}.")
-            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_ON)
             self.toggle_relay_button.setText(RELAY_TEXT_WHEN_ON)
 
     def _disconnect_relay(self):
