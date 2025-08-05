@@ -254,7 +254,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.setText(GFR_TEXT_WHEN_OFF)
         self.toggle_relay_button.setChecked(False)
         self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
-        self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
         # 4. Refresh the available ports
         self._refresh_ports(show_message=False)
@@ -358,7 +357,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
         self.toggle_gfr_button.setChecked(False)
         self.toggle_gfr_button.setText(GFR_TEXT_WHEN_OFF)
         self.toggle_relay_button.setChecked(False)
-        self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
         self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
     def _init_graph(self):
@@ -690,7 +688,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
 
         # Control button for Relay
         self.toggle_relay_button = QtWidgets.QPushButton(RELAY_TEXT_WHEN_OFF, self)
-        self.toggle_relay_button = QtWidgets.QPushButton(RELAY_TEXT_WHEN_OFF, self)
         self.toggle_relay_button.setCheckable(True)
         self.toggle_relay_button.clicked.connect(self._toggle_relay)
         control_buttons_layout.addWidget(self.toggle_relay_button)
@@ -832,7 +829,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             import winsound
 
             if platform_system() == "Windows":  # Check if running on Windows
-                winsound.MessageBeep(winsound.MB_OK)
+                winsound.MessageBeep()
             else:
                 print("Не удалось издать звуковой сигнал, не на Windows")
 
@@ -867,7 +864,7 @@ class GFRControlWindow(QtWidgets.QMainWindow):
             import winsound
 
             if platform_system() == "Windows":  # Check if running on Windows
-                winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
+                winsound.MessageBeep()
             else:
                 print("Не удалось издать звуковой сигнал, не на Windows")
 
@@ -880,7 +877,6 @@ class GFRControlWindow(QtWidgets.QMainWindow):
                 self._relay_show_error_msg()
             else:
                 self._log_message("Реле отключено.")
-            self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
             self.toggle_relay_button.setText(RELAY_TEXT_WHEN_OFF)
 
     def _connect_gfr(self, port):

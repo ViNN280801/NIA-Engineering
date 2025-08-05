@@ -83,7 +83,16 @@ if (Test-Path $PORTS_CONFIG_FILE) {
 	Write-Host "Ports configuration file removed from distribution."
 }
 else {
-	Write-Host "Ports configuration [$PORTS_CONFIG_FILE] file not found in distribution."
+	Write-Host "Ports configuration [$PORTS_CONFIG_FILE] file not found in distribution, trying to find in $DIST_DIR\$APP_NAME\config\ directory."
+	$PORTS_CONFIG_FILE = "$DIST_DIR\$APP_NAME\config\ports.yaml"
+	if (Test-Path $PORTS_CONFIG_FILE) {
+		Write-Host "Ports configuration file found in $PORTS_CONFIG_FILE."
+		Remove-Item -Force $PORTS_CONFIG_FILE -ErrorAction SilentlyContinue
+		Write-Host "Ports configuration file removed from distribution."
+	}
+	else {
+		Write-Host "Ports configuration file not found in $DIST_DIR\$APP_NAME\config\ directory."
+	}
 }
 
 # Create a ZIP archive of the application directory
